@@ -1,5 +1,7 @@
 int main(int argc, char *argv[]) {
-	char test = 't';
-	// TODO: implement the STOMP client
+	
+	//thread for keyboard
+	//therad for connections
+	//there is a code in the assignment to implement
 	return 0;
 }

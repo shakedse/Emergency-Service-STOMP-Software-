@@ -114,6 +114,9 @@ Event::Event(const std::string &frame_body): channel_name(""), city(""),
     general_information = general_information_from_string;
 }
 
+
+//a methos that parse the json
+
 names_and_events parseEventsFile(std::string json_path)
 {
     std::ifstream f(json_path);

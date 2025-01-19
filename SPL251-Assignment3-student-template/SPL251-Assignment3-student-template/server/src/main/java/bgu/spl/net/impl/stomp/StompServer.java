@@ -3,6 +3,11 @@ package bgu.spl.net.impl.stomp;
 public class StompServer {
 
     public static void main(String[] args) {
-        // TODO: implement this
+        if(args.length != 1)
+        {
+            System.out.println("Usage: StompServer <port>");
+            return;
+        }
+        
     }
 }

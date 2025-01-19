@@ -6,6 +6,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.List;
 
 public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler<T> {
 
@@ -15,6 +16,8 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     private BufferedInputStream in;
     private BufferedOutputStream out;
     private volatile boolean connected = true;
+    
+    private List<String> topics;
 
     public BlockingConnectionHandler(Socket sock, MessageEncoderDecoder<T> reader, MessagingProtocol<T> protocol) {
         this.sock = sock;
@@ -44,7 +47,6 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-
     }
 
     @Override
@@ -53,8 +55,25 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
         sock.close();
     }
 
-    @Override
-    public void send(T msg) {
-        //IMPLEMENT IF NEEDED
+    public boolean isSubscribed(String channel)
+    {
+        if(topics.contains(channel))
+            return true;
+        return false;
     }
+
+    @Override
+    public synchronized void send(T msg) {
+        try {
+            if (msg != null) {
+                byte[] encodedMessage = encdec.encode(msg);
+                out.write(encodedMessage);
+                out.flush(); // Ensure data is sent immediately
+            }
+        } catch (IOException e) {
+            e.printStackTrace(); // Log the error
+            connected = false; // Mark the handler as disconnected on failure
+        }
+    }
+    
 }
