@@ -21,20 +21,27 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
         String command = msg.getCommand();
         if(command == "CONNECT")
         {
-            
+            return null;
         }
         if(command == "SEND")
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
-            if(!connections.subscribedTo(connectionId, headers.get("destination")))
+            if(!connections.subscribedTo(connectionId, headers.get("destination"))) // first checks if the user is subscribed to the topic it's trying to send massege about
             {
-                connections.send(headers.get("destination"), (String)msg.getFrameBody());
+                connections.send(headers.get("destination"), (String)msg.getFrameBody()); // sending the massege to everyone who is subscribe to the topic
+                if(headers.containsKey("receipt")) // if a receipt was asked
+                {
+                    ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
+                    ansHeaders.put("receipt -id:", headers.get("receipt"));
+                    return new StompFrame("RECEIPT", headers, "");
+                }
                 return null;
             }
             else
             {
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
                 ansHeaders.put("massage:", headers.get(connectionId + "is not subscribed to: " + headers.get("destination")));
+                connections.disconnect(connectionId);
                 ERROR(); // TO impl this
                 return new StompFrame("ERROR", ansHeaders,"");
             }
@@ -45,6 +52,12 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
             String status = connections.subscribe(connectionId, headers.get("destination") , Integer.parseInt(headers.get("id")));
             if(status == "")
             {
+                if(headers.containsKey("receipt")) // if a receipt was asked
+                {
+                    ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
+                    ansHeaders.put("receipt -id:", headers.get("receipt"));
+                    return new StompFrame("RECEIPT", headers, "");
+                }
                 return null;
             }
             else
@@ -52,7 +65,8 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
                 ansHeaders.put("subscription -id:", headers.get("id"));
                 ansHeaders.put("massage:", headers.get(connectionId + "can't subscribe with the id: " +  headers.get("id")));
-                ERROR(); // TO impl this
+                connections.disconnect(connectionId);
+                ERROR();
                 return new StompFrame("ERROR", ansHeaders, status);
             }
         }
@@ -61,6 +75,12 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
             if(connections.unsubscribe(connectionId, Integer.parseInt(headers.get("id"))))
             {
+                if(headers.containsKey("receipt")) // if a receipt was asked
+                {
+                    ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
+                    ansHeaders.put("receipt -id:", headers.get("receipt"));
+                    return new StompFrame("RECEIPT", headers, "");
+                }
                 return null;
             }
             else
@@ -68,7 +88,8 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
                 ansHeaders.put("subscription -id:", headers.get("id"));
                 ansHeaders.put("massage:", headers.get(connectionId + "can't unsubscribe with the id: " +  headers.get("id")));
-                ERROR(); // TO impl this
+                connections.disconnect(connectionId);
+                ERROR();
                 return new StompFrame("ERROR", ansHeaders,"");
             }
         }
@@ -76,24 +97,9 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
             ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-            ansHeaders.put("receipt -id:", headers.get("id"));
+            ansHeaders.put("receipt -id:", headers.get("receipt"));
+            connections.disconnect(connectionId);
             return new StompFrame("RECEIPT", ansHeaders,"");
-        }
-        if(command == "CONNECTED")
-        {
-
-        }
-        if(command == "MESSAGE")
-        {
-
-        }
-        if(command == "RECEIPT")
-        {
-
-        }
-        if(command == "ERROR")
-        {
-
         }
         return null;
     }
@@ -112,7 +118,7 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
 
     public void ERROR()
     {
-        // TO DO!
+        
     }
     
 }
