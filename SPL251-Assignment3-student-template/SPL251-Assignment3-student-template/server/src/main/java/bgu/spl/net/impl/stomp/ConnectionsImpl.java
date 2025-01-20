@@ -33,7 +33,6 @@ public class ConnectionsImpl <T> implements Connections<T>
         ConnectionMap = new ConcurrentHashMap<>();
     }
     
-    
     //creating a new connection between the server and the client
     public Boolean connect(int connectionId)
     {
@@ -49,17 +48,17 @@ public class ConnectionsImpl <T> implements Connections<T>
     }
 
     // subscribing a client to a topic
-    public boolean subscribe(int connectionId, String topic, int subscribeId)
+    public String subscribe(int connectionId, String topic, int subscribeId)
     {
         if(!ConnectionMap.contains(connectionId))
-            return false;
+            return "connectionId does not exists";
         TopicsToId.putIfAbsent(topic, new Vector<Integer>());
         if(TopicsToId.get(topic).contains(connectionId))
-            return false;
+            return "user already subscribe to this topic";
         subIds.get(connectionId).put(subscribeId, topic);
         TopicsToId.get(topic).add(connectionId);
         IdToTopics.get(connectionId).add(topic);
-        return true; 
+        return ""; 
     }
 
     //unsubscribe a client from a topic
@@ -111,5 +110,10 @@ public class ConnectionsImpl <T> implements Connections<T>
                 }  
             }
         }
+    }
+
+    public boolean subscribedTo(int connectionId, String topic)
+    {
+        return TopicsToId.get(topic).contains(connectionId);
     }
 }
