@@ -2,10 +2,10 @@ package bgu.spl.net.impl.stomp;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import bgu.spl.net.api.StompMessagingProtocol;
+import bgu.spl.net.api.*;
 import bgu.spl.net.srv.*;
 
-public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<StompFrame> {
+public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame> {
 
     private Connections connections;
     private int connectionId;

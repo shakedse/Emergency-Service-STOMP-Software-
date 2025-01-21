@@ -21,4 +21,6 @@ public interface Connections<T>
     Boolean logIn(int connectionId);
 
     String getSubID(int connectionId, String topic);
+
+    void addConnection(int connectionId, ConnectionHandler<T> ConnectionHandler);
 }

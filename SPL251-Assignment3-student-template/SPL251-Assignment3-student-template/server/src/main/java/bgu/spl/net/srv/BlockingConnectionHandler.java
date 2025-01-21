@@ -2,6 +2,8 @@ package bgu.spl.net.srv;
 
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.MessagingProtocol;
+import bgu.spl.net.impl.stomp.ConnectionsImpl.ConnectionsHolder;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -17,8 +19,6 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     private BufferedOutputStream out;
     private volatile boolean connected = true;
     
-    private List<String> topics;
-
     public BlockingConnectionHandler(Socket sock, MessageEncoderDecoder<T> reader, MessagingProtocol<T> protocol) {
         this.sock = sock;
         this.encdec = reader;
@@ -37,7 +37,7 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
                 T nextMessage = encdec.decodeNextByte((byte) read);
                 if (nextMessage != null) {
                     T response = protocol.process(nextMessage);
-                    if (response != null) {
+                    if (response != null) { 
                         out.write(encdec.encode(response));
                         out.flush();
                     }
@@ -54,9 +54,9 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
         connected = false;
         sock.close();
     }
-    
+
     @Override
-    public synchronized void send(T msg) {
+    public synchronized void send(T msg) { 
         try {
             if (msg != null) {
                 byte[] encodedMessage = encdec.encode(msg);
@@ -67,6 +67,11 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
             e.printStackTrace(); // Log the error
             connected = false; // Mark the handler as disconnected on failure
         }
+    }
+
+    public void Start(int connectionId)
+    {
+        protocol.start(connectionId, ConnectionsHolder.getInstance());
     }
     
 }

@@ -125,6 +125,11 @@ public class ConnectionsImpl <T> implements Connections<T>
         return TopicsToId.get(topic).contains(connectionId);
     }
 
+    public void addConnection(int connectionId, ConnectionHandler<T> ConnectionHandler)
+    {
+        ConnectionMap.put(connectionId, ConnectionHandler);
+    }
+    
     public String getSubID(int connectionId, String topic)
     {
         return Integer.toString(Idsubs.get(connectionId).get(topic));
