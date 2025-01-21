@@ -120,6 +120,11 @@ public class ConnectionsImpl <T> implements Connections<T>
         }
     }
 
+    public void addConnection(int connectionId, ConnectionHandler<T> ConnectionHandler)
+    {
+        ConnectionMap.put(connectionId, ConnectionHandler);
+    }
+
     public boolean subscribedTo(int connectionId, String topic)
     {
         return TopicsToId.get(topic).contains(connectionId);

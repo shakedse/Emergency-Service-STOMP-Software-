@@ -16,7 +16,8 @@ public class MessageEncoderDecoderImpl<T> implements MessageEncoderDecoder<T> {
         //this allow us to do the following comparison
         if (nextByte == '\u0000') 
         {
-            return (T) popString();
+            StompFrame msg = new StompFrame(popString());
+            return (T)msg;
         }
         pushByte(nextByte);
         return null; //not a line yet
@@ -25,8 +26,10 @@ public class MessageEncoderDecoderImpl<T> implements MessageEncoderDecoder<T> {
     @Override
     public byte[] encode(T message) 
     {
-        return (message + "\u0000").getBytes();//uses utf8 by default
+        String msg = message.toString();
+        return (msg).getBytes();//uses utf8 by default
     }
+
     private void pushByte(byte nextByte) 
     {
         if (len >= bytes.length) 
@@ -35,6 +38,7 @@ public class MessageEncoderDecoderImpl<T> implements MessageEncoderDecoder<T> {
         }
         bytes[len++] = nextByte;
     }
+
     private String popString() 
     {
         //notice that we explicitly requesting that the string will be decoded from UTF-8

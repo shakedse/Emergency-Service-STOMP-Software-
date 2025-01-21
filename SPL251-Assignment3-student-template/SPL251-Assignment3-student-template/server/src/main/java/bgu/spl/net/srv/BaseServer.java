@@ -2,6 +2,9 @@ package bgu.spl.net.srv;
 
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.MessagingProtocol;
+import bgu.spl.net.impl.stomp.IdGenarator;
+import bgu.spl.net.impl.stomp.ConnectionsImpl.ConnectionsHolder;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -42,6 +45,9 @@ public abstract class BaseServer<T> implements Server<T> {
                         encdecFactory.get(),
                         protocolFactory.get());
 
+                int clientID = IdGenarator.getInstance().GenNewId();
+                ConnectionsHolder.getInstance().addConnection(clientID, handler);
+                handler.Start(clientID);
                 execute(handler);
             }
         } catch (IOException ex) {

@@ -55,8 +55,8 @@ void start()
 	cout << "Connected to server: " << host << ":" << port << endl;
 	keyboardThread = std::thread([this]);
 	socketThread = std::thread(this);
-
 }
+
 //creating a frame for each user's command
 std::vector<std::string> StompClient::getFrame(string command)
 {
