@@ -6,6 +6,8 @@ using namespace std;
 
 std::mutex consoleMutex;
 std::atomic<bool> shouldTerminate(false);
+std::string loggedUserName = "";
+std::map<std::string, std::vector<Event>> topicToEvents;
 
 /**
  * This code assumes that the server replies the exact text the client sent it (as opposed to the practical session example)
@@ -17,24 +19,33 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
     // From here we will see the rest of the ehco client implementation:
     while (!shouldTerminate)
     {
-        const short bufsize = 1024;     // maximal size of message
-        char buf[bufsize];              // buffer array for the message
-        std::cin.getline(buf, bufsize); // read the message from the keyboard
-        std::string lineRead(buf);      // convert the message to string
-        int len = lineRead.length();    // get the length of the message
-
+        const short bufsize = 1024;                     // maximal size of message
+        char buf[bufsize];                              // buffer array for the message
+        std::cin.getline(buf, bufsize);                 // read the message from the keyboard
+        std::string lineRead(buf);                      // convert the message to string
+        int len = lineRead.length();                    // get the length of the message
         std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 
+        std::string command(lineRead); // get the command from the user
+        std::vector<std::string> currFrame = StompClient::getFrame(command);
         // if the message was not sent
-        if (!connectionHandler.sendLine(line))
+        while (!currfFrame.empty())
         {
-            std::cout << "Disconnected. Exiting...\n"
-                      << std::endl;
-            // shouldTerminate = true;//terminate the program
-            break;
+            int index = 0;
+            if (!connectionHandler.sendLine(currFrame.get(index)))
+            {
+                std::cout << "Frame did not sent - fail\n"
+                          << std::endl;
+                std::cout << "Disconnected. Exiting...\n"
+                          << std::endl;
+                shouldTerminate = true; // terminate the program
+                break;
+            }
+            index++;
         }
+
         // if the message was sent
-        //  connectionHandler.sendLine(line) appends '\n' to the message. Therefor we send len+1 bytes.
+        // connectionHandler.sendLine(line) appends '\n' to the message. Therefor we send len+1 bytes.
         std::cout << "Sent " << len + 1 << " bytes to server" << std::endl;
     }
 }
