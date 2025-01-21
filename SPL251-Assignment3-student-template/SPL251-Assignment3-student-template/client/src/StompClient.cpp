@@ -12,6 +12,7 @@ int main(int argc, char *argv[])
 	// there is a code in the assignment to implement
 	return 0;
 }
+
 class StompClient
 {
 private:
@@ -22,10 +23,11 @@ private:
 	Integer currSubscriptionId;
 	thread keyboardThread;
 	thread socketThread;
-	map<Integer, string> receiptIdToCommand;//receipt id and the frame
-	map<string,string> loginToPasscode;//login and passcode
-	map<string, Integer> subscriptionIdToChannel;//for each channel - his subscribers id
-	map<string, vector<string>> idAndInfo;//id and login info
+	map<Integer, string> receiptIdToCommand;			//receipt id and the frame
+	map<string,string> loginToPasscode;					//login and passcode
+	map<string, vector<string> userToReports;			//user and his reports
+	map<string, vector<string>> idAndInfo;				//id and login info
+	
 	//first in the vector - login name, second- passcode
 	map<string, vector<Event>> topicToEvents;//channel and his events
 
@@ -54,9 +56,9 @@ void start()
 	}
 	cout << "Connected to server: " << host << ":" << port << endl;
 	keyboardThread = std::thread([this]);
-	socketThread = std::thread(this);
-
+	socketThread = std
 }
+
 //creating a frame for each user's command
 std::vector<std::string> StompClient::getFrame(string command)
 {
@@ -64,6 +66,8 @@ std::vector<std::string> StompClient::getFrame(string command)
 	string currFrame;
 	int fisrtSpaceIndex = command.find(" ");
 	string commandType = command.substr(0, fisrtSpaceIndex);
+	
+	//login command
 	if (commandType == "login")
 	{
 		if(connected)
@@ -79,12 +83,12 @@ std::vector<std::string> StompClient::getFrame(string command)
 
 		int loginIndex = command.find(" ", fisrtSpaceIndex + 1);								   // finding the login index
 		int passcodeIndex = command.find(" ", loginIndex + 1);									   // finding the passcode index
-			if(idAndinfo.get)
-		
 		string loginName = command.substr(loginIndex + 1, passcodeIndex - loginIndex - 1);		   // getting the login name
 		string passcode = command.substr(passcodeIndex + 1, command.length() - passcodeIndex - 1); // getting the passcode
+		
 		cout << "login:" loginName << endl;
 		cout << "passcode:" passcode << endl;
+
 		connected = true; //after login the user is connected
 
 		//checking if the login name is already in the system
@@ -93,13 +97,15 @@ std::vector<std::string> StompClient::getFrame(string command)
 			cout << "Wrong password" << endl;
 			return {};
 		}
-		idandinfo[currSubscriptionId]={loginName, passcode};
+		idandinfo[currSubscriptionId] = {loginName, passcode};
 		loginToPasscode[loginName]= passcode;
 		currSubscriptionId++;
 
 		currFrame = "CONNECT\n" + "accept-version:1.2\n" + "host:" + host + "\n" + "login:" + loginName + "\n" + "passcode:" + passcode + "\n" + "\n" + "\n\n^@";
 		Frame.push_back(currFrame);
 	}
+
+	//join command
 	else if (commandType == "join") // subscribing to a channel
 	{
 		if(!connected)
@@ -115,6 +121,8 @@ std::vector<std::string> StompClient::getFrame(string command)
 		currReceiptId++;
 		Frame.push_back(currFrame);
 	}
+
+	//exit command
 	else if (commandType == "exit")
 	{
 		if(!connected)
@@ -129,6 +137,8 @@ std::vector<std::string> StompClient::getFrame(string command)
 		currFrame = "UNSUBSCRIBE\n" + "id:0\n" + "receipt:1\n" + "\n" + "\n\n^@";
 		Frame.push_back(currFrame);
 	}
+
+	//report command
 	else if (commandType == "report")
 	{
 		if(!connected)
@@ -152,9 +162,13 @@ std::vector<std::string> StompClient::getFrame(string command)
 						"    active:" + event.get_general_information().at("active") + "\n" +
 						"    forces arrival at scene:" + event.get_general_information().at("forces arrival at scene") + "\n" +
 						"description:" + event.get_description() + "\n" + event.get_description() + "\n\n^@";
+
+			userToReports[event.getEventOwnerUser()].push_back(currFrame);
+			Frame.push_back(currFrame);
 		}
-		Frame.push_back(currFrame);
 	}
+
+	//summary command
 	else if (commandType == "summary")
 	{
 		if(!connected)
@@ -162,7 +176,18 @@ std::vector<std::string> StompClient::getFrame(string command)
 			cout << "”The client is not logged in, log in before trying to summary" << endl;
 			return {};
 		}
+		int channelIndex = 9; //summary+" "
+		int usernameIndex = command.find(" ", channelIndex + 1); // finding the index after the summary
+		int fileIndex = command.find(" ", usernameIndex + 1); // finding the index after the username
+		
+		string channel = command.substr(channelIndex, usernameIndex - channelIndex - 1); // getting the channel
+		string userName = command.substr(usernameIndex + 1, fileIndex - usernameIndex - 1); // getting the user name
+		string filePath = command.substr(fileIndex + 1, command.length() - fileIndex - 1); // getting the file path
+		cout << "user name:" userName << endl;
+		Frame = makeSummary(channel, userName, filePath);
 	}
+
+	//logout command
 	else if (commandType == "logout")
 	{
 		if(!connected)
@@ -170,10 +195,104 @@ std::vector<std::string> StompClient::getFrame(string command)
 			cout << "”The client is not logged in, log in before trying to logout" << endl;
 			return {};
 		}
-		string Frame = "DISCONNECT\n" + "receipt:1\n" + "\n" + "\n\n^@";
+		currFrame =  = "DISCONNECT\n" + "receipt:1\n" + "\n" + "\n\n^@";
+		Frame.push_back(currFrame);
 	}
 	return Frame;
 }
-void StompClient::makeSummary()
+
+vector<std::string> StompClient::makeSummary(string channel, string userName, string filePath)
 {
+	//ig the user has no reports
+	if(userToReports.find(userName) == userToReports.end())
+	{
+		cout << "No reports for this user" << endl;
+		return {};
+	}
+
+	vector<std::string> finalSummary = {};
+	vector<std::string> relevantReports = {};
+
+	//initiating the statistics
+	int reportsNum = 0;
+	int activeEventsNum = 0;
+	int forceArrivalNum = 0;
+
+	//going over all the reports of the user
+	for(const auto &report : userToReports[userName])
+	{
+		if(report.get_channel_name() == channel)//if the report is about the channel
+		{
+			relevantReports.push_back(report);
+			reportsNum++;
+			if(report.get_general_information().at("forces arrival at scene") == "true")
+			{
+				forceArrivalNum++;
+			}
+			if(report.get_general_information().at("active") == "true")
+			{
+				activeEventsNum++;
+			}
+		}
+	}
+
+	//sorting the reports by the date time
+	std::sort(relevantReports.begin(), relevantReports.end(), [](const Event &a, const Event &b) 
+	{
+	if (a.get_date_time() == b.get_date_time()) {
+		return a.get_name() < b.get_name();
+	}
+	return a.get_date_time() < b.get_date_time();
+	});
+
+	string begining = "Channel " + channel + "\n" +
+                        "Stats:\n" +
+                        "Total: " + std::to_string(reportsNum) + "\n" +
+                        "active: " + std::to_string(activeEventsNum) + "\n" +
+                        "forces arrival at scene: " + std::to_string(forceArrivalNum) + "\n" +
+                        "Event Reports:\n" +"\n\n";
+
+	//inserting the summary to the beginning of the vector
+	finalSummary.insert(finalSummary.begin(), begining);
+
+	//converting the epoch time to date
+	std::string StompClient::epochToDate(int epochTime) 
+	{
+		time_t rawTime = epochTime;
+    	struct tm *timeInfo = localtime(&rawTime);
+    	char buffer[20];
+    	strftime(buffer, sizeof(buffer), "%d/%m/%y %H:%M", timeInfo);
+    	return std::string(buffer);
+	}
+
+	//creating the summary for each report
+	for(const auto &report : relevantReports)
+	{
+		int i=1;
+		std::string description = report.get_description();
+		if(description.length() > 27)
+		{
+			description = description.substr(0, 27) + "...";
+		}
+
+		std::reportSum = "Report_" + std::to_string(i)+ ":\n" +
+						 "    city:" + report.get_city() + "\n" +
+						 "    date time:" + epochToDate((report.get_date_time()) + "\n" +
+						 "    event name:" + report.get_name() + "\n" +
+						 "    summary:" + description + "\n";
+		
+		finalSummary.push_back(reportSum);
+		i++;
+	}
+	//writing the summary to the file
+	std::ofstream file(filePath, std::ios::out);
+	if(!file.is_open())
+	{
+		cout << "Could not open the file" << endl;
+		return {};
+	}	
+	file.close();
+	return finalSummary;
+	cout << "Summary has been written to the file" << filepath << endl;
+
 }

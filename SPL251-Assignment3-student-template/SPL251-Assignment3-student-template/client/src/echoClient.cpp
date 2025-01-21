@@ -36,7 +36,7 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
             {
                 std::cout << "Frame did not sent - fail\n"
                           << std::endl;
-                std::cout << "Disconnected. Exiting...\n"
+                std::cout << "Could not connect to server\n"
                           << std::endl;
                 shouldTerminate = true; // terminate the program
                 break;
