@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include "../include/ConnectionHandler.h"
+#include <thread>
+#include <mutex>
+using namespace std;
 
 /**
 * This code assumes that the server replies the exact text the client sent it (as opposed to the practical session example)
