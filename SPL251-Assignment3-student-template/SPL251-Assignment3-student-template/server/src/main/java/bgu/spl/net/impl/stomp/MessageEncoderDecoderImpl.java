@@ -5,6 +5,7 @@ import bgu.spl.net.api.MessageEncoderDecoder;
 public class MessageEncoderDecoderImpl<T> implements MessageEncoderDecoder<T> {
     public T decodeNextByte(byte nextByte)
     {
+        if
         return null;
     }
 

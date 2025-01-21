@@ -8,7 +8,8 @@ import bgu.spl.net.srv.*;
 public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<StompFrame> {
 
     private Connections connections;
-    int connectionId;
+    private int connectionId;
+    private boolean shouldTerminate;
 
     public StompMessagingProtocolImpl()
     {
@@ -108,12 +109,13 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
     {
         this.connectionId = connectionId;
         this.connections = connections;
+        this.shouldTerminate = false;
     }
 
     @Override
     public boolean shouldTerminate() 
     {
-        return false;
+        return shouldTerminate;
     }
 
     public void ERROR()
