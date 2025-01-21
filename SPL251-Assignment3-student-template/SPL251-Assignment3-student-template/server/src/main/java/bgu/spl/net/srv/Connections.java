@@ -2,7 +2,8 @@ package bgu.spl.net.srv;
 
 import java.io.IOException;
 
-public interface Connections<T> {
+public interface Connections<T> 
+{
 
     boolean send(int connectionId, T msg);
 
@@ -16,4 +17,8 @@ public interface Connections<T> {
     boolean unsubscribe(int connectionId, int subscribeId);
 
     boolean subscribedTo(int connectionId, String topic);
+
+    Boolean logIn(int connectionId);
+
+    String getSubID(int connectionId, String topic);
 }

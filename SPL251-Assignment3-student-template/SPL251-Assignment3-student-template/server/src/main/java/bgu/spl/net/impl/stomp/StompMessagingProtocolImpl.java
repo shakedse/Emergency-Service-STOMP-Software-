@@ -8,7 +8,8 @@ import bgu.spl.net.srv.*;
 public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<StompFrame> {
 
     private Connections connections;
-    int connectionId;
+    private int connectionId;
+    private boolean shouldTerminate;
 
     public StompMessagingProtocolImpl()
     {
@@ -21,14 +22,18 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
         String command = msg.getCommand();
         if(command == "CONNECT")
         {
-            return null;
+            connections.logIn(connectionId); // TO DO
         }
         if(command == "SEND")
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
             if(!connections.subscribedTo(connectionId, headers.get("destination"))) // first checks if the user is subscribed to the topic it's trying to send massege about
             {
-                connections.send(headers.get("destination"), (String)msg.getFrameBody()); // sending the massege to everyone who is subscribe to the topic
+                ConcurrentHashMap<String, String> messageHeaders = new ConcurrentHashMap<String, String>();
+                StompFrame message = new StompFrame("MESSAGE", messageHeaders, (String)msg.getFrameBody());
+                messageHeaders.put("subscription", connections.getSubID(connectionId, headers.get("destination")));
+                messageHeaders.put("message-id", IdGenarator.GenNewId());
+                connections.send(headers.get("destination"), message); // sending the massege to everyone who is subscribe to the topic
                 if(headers.containsKey("receipt")) // if a receipt was asked
                 {
                     ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
@@ -108,12 +113,13 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
     {
         this.connectionId = connectionId;
         this.connections = connections;
+        this.shouldTerminate = false;
     }
 
     @Override
     public boolean shouldTerminate() 
     {
-        return false;
+        return shouldTerminate;
     }
 
     public void ERROR()

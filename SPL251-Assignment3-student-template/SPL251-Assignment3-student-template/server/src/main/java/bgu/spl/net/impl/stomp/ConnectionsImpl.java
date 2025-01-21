@@ -21,6 +21,7 @@ public class ConnectionsImpl <T> implements Connections<T>
     private ConcurrentHashMap<Integer, Vector<String>> IdToTopics;
     private ConcurrentHashMap<String, Vector<Integer>> TopicsToId;
     private ConcurrentHashMap<Integer, ConcurrentHashMap<Integer,String>> subIds;
+    private ConcurrentHashMap<Integer, ConcurrentHashMap<String,Integer>> Idsubs;
 
 
     public ConnectionsImpl<T> getInstance()
@@ -34,17 +35,20 @@ public class ConnectionsImpl <T> implements Connections<T>
     }
     
     //creating a new connection between the server and the client
-    public Boolean connect(int connectionId)
+    public Boolean connect(int connectionId, BlockingConnectionHandler connectionHandler)
     {
         if(ConnectionMap.get(connectionId) != null)
             return false;
-        this.ConnectionMap.put(connectionId, new ConnectionHandlerImplTPC<T>(
-                                                        new Socket(),
-                                                         new MessageEncoderDecoderImpl<T>(),
-                                                          new StompMessagingProtocolImpl<T>()));      
+        this.ConnectionMap.put(connectionId, connectionHandler);      
         IdToTopics.put(connectionId, new Vector<String>());
         subIds.put(connectionId, new ConcurrentHashMap<Integer,String>());
+        Idsubs.put(connectionId, new ConcurrentHashMap<String,Integer>());
         return true;
+    }
+
+    public Boolean logIn(int connectionId)
+    {
+        return true; // TO DO
     }
 
     // subscribing a client to a topic
@@ -56,6 +60,7 @@ public class ConnectionsImpl <T> implements Connections<T>
         if(TopicsToId.get(topic).contains(connectionId))
             return "user already subscribe to this topic";
         subIds.get(connectionId).put(subscribeId, topic);
+        Idsubs.get(connectionId).put(topic, subscribeId);
         TopicsToId.get(topic).add(connectionId);
         IdToTopics.get(connectionId).add(topic);
         return ""; 
@@ -72,6 +77,8 @@ public class ConnectionsImpl <T> implements Connections<T>
         if(!TopicsToId.get(topic).contains(connectionId))
             return false;
 
+        subIds.get(connectionId).remove(subscribeId);
+        Idsubs.get(connectionId).remove(topic);
         TopicsToId.get(topic).remove(connectionId);
         IdToTopics.get(connectionId).remove(topic);
         return true;
@@ -99,6 +106,7 @@ public class ConnectionsImpl <T> implements Connections<T>
         ConnectionMap.remove(connectionId);
         IdToTopics.remove(connectionId);
         subIds.remove(connectionId);
+        Idsubs.remove(connectionId);
         for(String topic: TopicsToId.keySet())
         {
             for(Integer id: TopicsToId.get(topic))
@@ -115,5 +123,10 @@ public class ConnectionsImpl <T> implements Connections<T>
     public boolean subscribedTo(int connectionId, String topic)
     {
         return TopicsToId.get(topic).contains(connectionId);
+    }
+
+    public String getSubID(int connectionId, String topic)
+    {
+        return Integer.toString(Idsubs.get(connectionId).get(topic));
     }
 }
