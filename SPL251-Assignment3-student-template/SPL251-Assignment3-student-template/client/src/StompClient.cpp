@@ -185,6 +185,7 @@ std::vector<std::string> StompClient::getFrame(string command)
 		string filePath = command.substr(fileIndex + 1, command.length() - fileIndex - 1); // getting the file path
 		cout << "user name:" userName << endl;
 		Frame = makeSummary(channel, userName, filePath);
+		//מה עושים עם הקובץ של הסאמרי??????
 	}
 
 	//logout command
@@ -195,7 +196,7 @@ std::vector<std::string> StompClient::getFrame(string command)
 			cout << "”The client is not logged in, log in before trying to logout" << endl;
 			return {};
 		}
-		currFrame =  = "DISCONNECT\n" + "receipt:1\n" + "\n" + "\n\n^@";
+		currFrame =  "DISCONNECT\n" + "receipt:1\n" + "\n" + "\n\n^@";
 		Frame.push_back(currFrame);
 	}
 	return Frame;
@@ -209,7 +210,12 @@ vector<std::string> StompClient::makeSummary(string channel, string userName, st
 		cout << "No reports for this user" << endl;
 		return {};
 	}
-
+	std::ofstream file(filePath, std::ios::out);
+	if(!file.is_open())
+	{
+		cout << "Could not open the file" << endl;
+		return {};
+	} 
 	vector<std::string> finalSummary = {};
 	vector<std::string> relevantReports = {};
 
@@ -245,15 +251,13 @@ vector<std::string> StompClient::makeSummary(string channel, string userName, st
 	return a.get_date_time() < b.get_date_time();
 	});
 
-	string begining = "Channel " + channel + "\n" +
-                        "Stats:\n" +
-                        "Total: " + std::to_string(reportsNum) + "\n" +
-                        "active: " + std::to_string(activeEventsNum) + "\n" +
-                        "forces arrival at scene: " + std::to_string(forceArrivalNum) + "\n" +
-                        "Event Reports:\n" +"\n\n";
-
-	//inserting the summary to the beginning of the vector
-	finalSummary.insert(finalSummary.begin(), begining);
+//the beginning of the summary
+	file << "Channel " << channel << "\n" ;
+    file << "Stats:\n" ;
+    file << "Total: " << std::to_string(reportsNum) << "\n" ;
+    file << "active: " << std::to_string(activeEventsNum) << "\n" ;
+    file << "forces arrival at scene: " << std::to_string(forceArrivalNum) << "\n" +
+    file << "Event Reports:\n\n";
 
 	//converting the epoch time to date
 	std::string StompClient::epochToDate(int epochTime) 
@@ -275,22 +279,17 @@ vector<std::string> StompClient::makeSummary(string channel, string userName, st
 			description = description.substr(0, 27) + "...";
 		}
 
-		std::reportSum = "Report_" + std::to_string(i)+ ":\n" +
-						 "    city:" + report.get_city() + "\n" +
-						 "    date time:" + epochToDate((report.get_date_time()) + "\n" +
-						 "    event name:" + report.get_name() + "\n" +
-						 "    summary:" + description + "\n";
+		file <<  "Report_" << std::to_string(i) <<":\n" ;
+		file << "    city:" << report.get_city() << "\n" ;
+		file << "    date time:" << epochToDate((report.get_date_time()) << "\n" ;
+		file << "    event name:" << report.get_name() << "\n" ;
+		file << "    summary:" << description << "\n";
 		
-		finalSummary.push_back(reportSum);
 		i++;
 	}
 	//writing the summary to the file
-	std::ofstream file(filePath, std::ios::out);
-	if(!file.is_open())
-	{
-		cout << "Could not open the file" << endl;
-		return {};
-	}	
+
+	
 	file.close();
 	return finalSummary;
 	cout << "Summary has been written to the file" << filepath << endl;
