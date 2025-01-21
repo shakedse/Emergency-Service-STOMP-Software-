@@ -18,13 +18,17 @@ private:
 	std::atomic<bool> shouldTerminate;
 	ConnectionHandler connectionHandler;
 	bool connected;
-	int currReceiptId;
-	int currSubscriptionId;
+	Integer currReceiptId;
+	Integer currSubscriptionId;
 	thread keyboardThread;
 	thread socketThread;
+	map<Integer, string> receiptIdToCommand;//receipt id and the frame
+	map<string,string> loginToPasscode;//login and passcode
+	map<string, Integer> subscriptionIdToChannel;//for each channel - his subscribers id
+	map<string, vector<string>> idAndInfo;//id and login info
+	//first in the vector - login name, second- passcode
+	map<string, vector<Event>> topicToEvents;//channel and his events
 
-	// methods for the commands
-	void login(co);
 
 public:
 	StompClient(const std::string &host, short port);
@@ -49,7 +53,7 @@ void start()
 		return;
 	}
 	cout << "Connected to server: " << host << ":" << port << endl;
-	keyboardThread = std::thread(this);
+	keyboardThread = std::thread([this]);
 	socketThread = std::thread(this);
 
 }
@@ -64,9 +68,10 @@ std::vector<std::string> StompClient::getFrame(string command)
 	{
 		if(connected)
 		{
-			cout << "”The client is already logged in, log out before trying again”" << endl;
+			cout << "The client is already logged in, log out before trying again" << endl;
 			return {};
 		}
+		
 		int hostIndex = command.find(":");
 		// ????????string host = command.substr(fisrtSpaceIndex + 1, hostIndex - fisrtSpaceIndex - 1);
 		string host = "stomp.cs.bgu.ac.il";
@@ -74,11 +79,23 @@ std::vector<std::string> StompClient::getFrame(string command)
 
 		int loginIndex = command.find(" ", fisrtSpaceIndex + 1);								   // finding the login index
 		int passcodeIndex = command.find(" ", loginIndex + 1);									   // finding the passcode index
+			if(idAndinfo.get)
+		
 		string loginName = command.substr(loginIndex + 1, passcodeIndex - loginIndex - 1);		   // getting the login name
 		string passcode = command.substr(passcodeIndex + 1, command.length() - passcodeIndex - 1); // getting the passcode
 		cout << "login:" loginName << endl;
 		cout << "passcode:" passcode << endl;
-		connected = true; // after login the user is connected
+		connected = true; //after login the user is connected
+
+		//checking if the login name is already in the system
+		if(loginToPasscode.find(loginName) != loginToPasscode.end())
+		{
+			cout << "Wrong password" << endl;
+			return {};
+		}
+		idandinfo[currSubscriptionId]={loginName, passcode};
+		loginToPasscode[loginName]= passcode;
+		currSubscriptionId++;
 
 		currFrame = "CONNECT\n" + "accept-version:1.2\n" + "host:" + host + "\n" + "login:" + loginName + "\n" + "passcode:" + passcode + "\n" + "\n" + "\n\n^@";
 		Frame.push_back(currFrame);
@@ -94,7 +111,8 @@ std::vector<std::string> StompClient::getFrame(string command)
 		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
 		cout << "channel sub:" channel << endl;
 
-		currFrame = "SUBSCRIBE\n" + "destination:/" + channel + "\n" + "id:0\n" + "receipt:1\n" + "\n" + "\n\n^@";
+		currFrame = "SUBSCRIBE\n" + "destination:/" + channel + "\n" + "id:" + currSubscriptionId +"\n" + "receipt:" + currReceiptId +"\n" + "\n\n^@";
+		currReceiptId++;
 		Frame.push_back(currFrame);
 	}
 	else if (commandType == "exit")
