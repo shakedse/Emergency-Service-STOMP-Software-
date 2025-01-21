@@ -9,6 +9,7 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
 
     private Connections connections;
     private int connectionId;
+    private IdGenarator IdGenarator;
     private boolean shouldTerminate;
 
     public StompMessagingProtocolImpl()
@@ -32,7 +33,7 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
                 ConcurrentHashMap<String, String> messageHeaders = new ConcurrentHashMap<String, String>();
                 StompFrame message = new StompFrame("MESSAGE", messageHeaders, (String)msg.getFrameBody());
                 messageHeaders.put("subscription", connections.getSubID(connectionId, headers.get("destination")));
-                messageHeaders.put("message-id", IdGenarator.GenNewId());
+                messageHeaders.put("message-id", Integer.toString(IdGenarator.GenNewId()));
                 connections.send(headers.get("destination"), message); // sending the massege to everyone who is subscribe to the topic
                 if(headers.containsKey("receipt")) // if a receipt was asked
                 {
@@ -114,6 +115,7 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
         this.connectionId = connectionId;
         this.connections = connections;
         this.shouldTerminate = false;
+        this.IdGenarator = IdGenarator.getInstance();
     }
 
     @Override
