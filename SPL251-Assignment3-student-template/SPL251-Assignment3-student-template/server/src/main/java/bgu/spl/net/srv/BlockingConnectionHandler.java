@@ -54,14 +54,7 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
         connected = false;
         sock.close();
     }
-
-    public boolean isSubscribed(String channel)
-    {
-        if(topics.contains(channel))
-            return true;
-        return false;
-    }
-
+    
     @Override
     public synchronized void send(T msg) {
         try {

@@ -48,6 +48,7 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
                 ansHeaders.put("massage:", headers.get(connectionId + "is not subscribed to: " + headers.get("destination")));
                 connections.disconnect(connectionId);
+                shouldTerminate = true;
                 ERROR(); // TO impl this
                 return new StompFrame("ERROR", ansHeaders,"");
             }
@@ -72,6 +73,7 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
                 ansHeaders.put("subscription -id:", headers.get("id"));
                 ansHeaders.put("massage:", headers.get(connectionId + "can't subscribe with the id: " +  headers.get("id")));
                 connections.disconnect(connectionId);
+                shouldTerminate = true;
                 ERROR();
                 return new StompFrame("ERROR", ansHeaders, status);
             }
@@ -95,6 +97,7 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
                 ansHeaders.put("subscription -id:", headers.get("id"));
                 ansHeaders.put("massage:", headers.get(connectionId + "can't unsubscribe with the id: " +  headers.get("id")));
                 connections.disconnect(connectionId);
+                shouldTerminate = true;
                 ERROR();
                 return new StompFrame("ERROR", ansHeaders,"");
             }
@@ -105,6 +108,7 @@ public class StompMessagingProtocolImpl<T> implements StompMessagingProtocol<Sto
             ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
             ansHeaders.put("receipt -id:", headers.get("receipt"));
             connections.disconnect(connectionId);
+            shouldTerminate = true;
             return new StompFrame("RECEIPT", ansHeaders,"");
         }
         return null;
