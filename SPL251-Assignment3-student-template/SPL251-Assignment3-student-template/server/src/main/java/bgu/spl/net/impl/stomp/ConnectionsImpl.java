@@ -1,4 +1,5 @@
 package bgu.spl.net.impl.stomp;
+import java.io.IOException;
 import java.net.Socket;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,10 +19,12 @@ public class ConnectionsImpl <T> implements Connections<T>
     }
     
     private ConcurrentHashMap<Integer, ConnectionHandler<T>> ConnectionMap;
-    private ConcurrentHashMap<Integer, Vector<String>> IdToTopics;
     private ConcurrentHashMap<String, Vector<Integer>> TopicsToId;
     private ConcurrentHashMap<Integer, ConcurrentHashMap<Integer,String>> subIds;
     private ConcurrentHashMap<Integer, ConcurrentHashMap<String,Integer>> Idsubs;
+    private ConcurrentHashMap<String, String> LogedInUserToPassword;
+    private ConcurrentHashMap<String, String> UserToPassword;
+    private ConcurrentHashMap<Integer, String> IdtoUser;
 
 
     public ConnectionsImpl<T> getInstance()
@@ -31,7 +34,13 @@ public class ConnectionsImpl <T> implements Connections<T>
 
     public ConnectionsImpl()
     {
-        ConnectionMap = new ConcurrentHashMap<>();
+        ConnectionMap = new ConcurrentHashMap<Integer, ConnectionHandler<T>>();
+        TopicsToId = new ConcurrentHashMap<String, Vector<Integer>>();
+        subIds = new ConcurrentHashMap<Integer, ConcurrentHashMap<Integer,String>>();
+        Idsubs = new ConcurrentHashMap<Integer, ConcurrentHashMap<String,Integer>>();
+        LogedInUserToPassword = new ConcurrentHashMap<String, String>();
+        UserToPassword = new ConcurrentHashMap<String, String>();
+        IdtoUser = new ConcurrentHashMap<Integer, String>();
     }
     
     //creating a new connection between the server and the client
@@ -40,7 +49,6 @@ public class ConnectionsImpl <T> implements Connections<T>
         if(ConnectionMap.get(connectionId) != null)
             return false;
         this.ConnectionMap.put(connectionId, connectionHandler);      
-        IdToTopics.put(connectionId, new Vector<String>());
         subIds.put(connectionId, new ConcurrentHashMap<Integer,String>());
         Idsubs.put(connectionId, new ConcurrentHashMap<String,Integer>());
         return true;
@@ -62,7 +70,6 @@ public class ConnectionsImpl <T> implements Connections<T>
         subIds.get(connectionId).put(subscribeId, topic);
         Idsubs.get(connectionId).put(topic, subscribeId);
         TopicsToId.get(topic).add(connectionId);
-        IdToTopics.get(connectionId).add(topic);
         return ""; 
     }
 
@@ -80,7 +87,6 @@ public class ConnectionsImpl <T> implements Connections<T>
         subIds.get(connectionId).remove(subscribeId);
         Idsubs.get(connectionId).remove(topic);
         TopicsToId.get(topic).remove(connectionId);
-        IdToTopics.get(connectionId).remove(topic);
         return true;
     }
 
@@ -103,10 +109,9 @@ public class ConnectionsImpl <T> implements Connections<T>
 
     public void disconnect(int connectionId)
     {
-        ConnectionMap.remove(connectionId);
-        IdToTopics.remove(connectionId);
         subIds.remove(connectionId);
         Idsubs.remove(connectionId);
+        LogedInUserToPassword.remove(IdtoUser.get(connectionId)); // need to log out disconnected users
         for(String topic: TopicsToId.keySet())
         {
             for(Integer id: TopicsToId.get(topic))
@@ -118,6 +123,17 @@ public class ConnectionsImpl <T> implements Connections<T>
                 }  
             }
         }
+        ConnectionHandler<T> toClose = ConnectionMap.get(connectionId);
+        try
+        {
+            toClose.close();
+        }
+        catch (IOException e)  
+        {
+            e.printStackTrace(); // Handle exception
+        }
+        ConnectionMap.remove(connectionId);
+
     }
 
     public boolean subscribedTo(int connectionId, String topic)
@@ -125,13 +141,39 @@ public class ConnectionsImpl <T> implements Connections<T>
         return TopicsToId.get(topic).contains(connectionId);
     }
 
-    public void addConnection(int connectionId, ConnectionHandler<T> ConnectionHandler)
-    {
-        ConnectionMap.put(connectionId, ConnectionHandler);
-    }
-    
+
     public String getSubID(int connectionId, String topic)
     {
         return Integer.toString(Idsubs.get(connectionId).get(topic));
+    }
+
+    public String logIn(String user, String password, int connectionId)
+    {
+        if(UserToPassword.containsKey(user) == false) // new user
+        {
+            LogedInUserToPassword.put(user, password); // adding to loged in
+            UserToPassword.put(user, password); // adding to total users
+            IdtoUser.put(connectionId, user);
+            return "Login successful";
+        }
+        else
+        {
+            if(LogedInUserToPassword.containsKey(user) == true) // old user and loged in
+            {
+                return "User already logged in";
+            }
+            else
+            {
+                if(LogedInUserToPassword.get(user) != password) // old user, not loged in, wrong password
+                {
+                    return "Wrong password";
+                }
+                else // old user, loged out, right password
+                {
+                    LogedInUserToPassword.put(user, password); // adding to loged in
+                    return "Login successful";
+                }
+            }
+        }
     }
 }

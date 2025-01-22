@@ -46,7 +46,7 @@ public abstract class BaseServer<T> implements Server<T> {
                         protocolFactory.get());
 
                 int clientID = IdGenarator.getInstance().GenNewId();
-                ConnectionsHolder.getInstance().addConnection(clientID, handler);
+                ConnectionsHolder.getInstance().connect(clientID, handler);
                 handler.Start(clientID);
                 execute(handler);
             }

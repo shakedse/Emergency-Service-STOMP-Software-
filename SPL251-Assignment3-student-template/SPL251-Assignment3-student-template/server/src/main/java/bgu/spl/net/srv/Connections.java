@@ -22,5 +22,5 @@ public interface Connections<T>
 
     String getSubID(int connectionId, String topic);
 
-    void addConnection(int connectionId, ConnectionHandler<T> ConnectionHandler);
+    String logIn(String user, String password, int connectionId);
 }
