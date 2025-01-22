@@ -56,11 +56,7 @@ void start()
 	}
 	cout << "Connected to server: " << host << ":" << port << endl;
 	keyboardThread = std::thread([this]);
-<<<<<<< HEAD
 	socketThread = std
-=======
-	socketThread = std::thread(this);
->>>>>>> d7edf11b52f0b7d2b4075cdf82d23cec61ad963c
 }
 
 //creating a frame for each user's command

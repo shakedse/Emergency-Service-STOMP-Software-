@@ -62,5 +62,10 @@
         "valarray": "cpp",
         "variant": "cpp"
     },
-    "makefile.makefilePath": "client/"
+    "makefile.makefilePath": "client/",
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#0D3604",
+        "titleBar.activeBackground": "#124B06",
+        "titleBar.activeForeground": "#F2FEEF"
+    }
 }
