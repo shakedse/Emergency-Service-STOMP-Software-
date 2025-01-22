@@ -49,13 +49,14 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
         else if(command.equals("SEND"))
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
-            if(!connections.subscribedTo(connectionId, headers.get("destination"))) // first checks if the user is subscribed to the topic it's trying to send massege about
+            System.out.println(msg.getHeaders().get("destination") + "in prot");
+            if(connections.subscribedTo(connectionId, headers.get("destination").substring(1))) // first checks if the user is subscribed to the topic it's trying to send massege about
             {
                 ConcurrentHashMap<String, String> messageHeaders = new ConcurrentHashMap<String, String>();
                 StompFrame message = new StompFrame("MESSAGE", messageHeaders, (String)msg.getFrameBody());
-                messageHeaders.put("subscription", connections.getSubID(connectionId, headers.get("destination")));
+                messageHeaders.put("subscription", connections.getSubID(connectionId, headers.get("destination").substring(1)));
                 messageHeaders.put("message-id", Integer.toString(IdGenarator.GenNewId()));
-                connections.send(headers.get("destination"), message); // sending the massege to everyone who is subscribe to the topic
+                connections.send(headers.get("destination").substring(1), message); // sending the massege to everyone who is subscribe to the topic
                 if(headers.containsKey("receipt")) // if a receipt was asked
                 {
                     ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
@@ -67,7 +68,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
             else
             {
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-                ansHeaders.put("massage", headers.get(connectionId + "is not subscribed to: " + headers.get("destination")));
+                ansHeaders.put("massage", connectionId + "is not subscribed to: " + headers.get("destination").substring(1));
                 connections.disconnect(connectionId);
                 shouldTerminate = true;
                 return new StompFrame("ERROR", ansHeaders, msg.toString());
@@ -114,7 +115,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
             {
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
                 ansHeaders.put("subscription-id", headers.get("id"));
-                ansHeaders.put("massage", headers.get(connectionId + "can't unsubscribe with the id: " +  headers.get("id")));
+                ansHeaders.put("massage", connectionId + "can't unsubscribe with the id: " +  headers.get("id"));
                 connections.disconnect(connectionId);
                 shouldTerminate = true;
                 return new StompFrame("ERROR", ansHeaders,"");

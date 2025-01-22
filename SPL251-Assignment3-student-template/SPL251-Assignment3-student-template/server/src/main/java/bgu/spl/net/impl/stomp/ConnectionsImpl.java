@@ -70,16 +70,19 @@ public class ConnectionsImpl <T> implements Connections<T>
         subIds.get(connectionId).put(subscribeId, topic);
         Idsubs.get(connectionId).put(topic, subscribeId);
         TopicsToId.get(topic).add(connectionId);
+        System.out.println(topic + " in sub");
         return "successful subscribe"; 
     }
 
     //unsubscribe a client from a topic
     public boolean unsubscribe(int connectionId, int subscribeId)
     {
-        if(!ConnectionMap.contains(connectionId))
+        if(!ConnectionMap.containsKey(connectionId))
             return false;
         String topic = subIds.get(connectionId).get(subscribeId);
-        if(TopicsToId.get(topic) == null)
+        if(topic == null)
+            return false;
+        if(TopicsToId.containsKey(topic) == false)
             return false;
         if(!TopicsToId.get(topic).contains(connectionId))
             return false;
@@ -123,27 +126,20 @@ public class ConnectionsImpl <T> implements Connections<T>
                 }  
             }
         }
-        ConnectionHandler<T> toClose = ConnectionMap.get(connectionId);
-        try
-        {
-            toClose.close();
-        }
-        catch (IOException e)  
-        {
-            e.printStackTrace(); // Handle exception
-        }
         ConnectionMap.remove(connectionId);
 
     }
 
     public boolean subscribedTo(int connectionId, String topic)
     {
+        System.out.println(topic + "in sub to");
         return TopicsToId.get(topic).contains(connectionId);
     }
 
 
     public String getSubID(int connectionId, String topic)
     {
+        System.out.println(topic + "in getSubID to");
         return Integer.toString(Idsubs.get(connectionId).get(topic));
     }
 
