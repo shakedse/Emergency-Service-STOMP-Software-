@@ -4,7 +4,6 @@ using namespace std;
 #include <mutex>
 #include <atomic>
 #include "../include/ConnectionHandler.h"
-#include "SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/client/include/event.h"
 
 int main(int argc, char *argv[])
 {
@@ -20,17 +19,17 @@ private:
 	std::atomic<bool> shouldTerminate;
 	ConnectionHandler connectionHandler;
 	bool connected;
-	int currReceiptId;
-	int currSubscriptionId;
+	Integer currReceiptId;
+	Integer currSubscriptionId;
 	thread keyboardThread;
 	thread socketThread;
-	map<int, string> receiptIdToCommand;			//receipt id and the frame
+	map<Integer, string> receiptIdToCommand;			//receipt id and the frame
 	map<string,string> loginToPasscode;					//login and passcode
-	map<string, vector<string>> userToReports;			//user and his reports
+	map<string, vector<string> userToReports;			//user and his reports
 	map<string, vector<string>> idAndInfo;				//id and login info
 	
 	//first in the vector - login name, second- passcode
-	map<string, vector<event>> topicToEvents;//channel and his events
+	map<string, vector<Event>> topicToEvents;//channel and his events
 
 
 public:
@@ -39,15 +38,16 @@ public:
 };
 
 // constructor
-StompClient::StompClient(const std::string &host, short port):
-	connectionHandler(host, port),
-	shouldTerminate(false),
-	connected(false),
-	currReceiptId(0),
-	currSubscriptionId(0)
-	{}
+stompClient::StompClient(const std::string &host, short port)
+{
+	connectionHandler(host, port);
+	shouldTerminate(false);
+	connected(false);
+	currReceiptId(0);
+	currSubscriptionId(0);
+}
 
-void StompClient::start()
+void start()
 {
 	if(!connectionHandler.connect())
 	{
@@ -56,8 +56,11 @@ void StompClient::start()
 	}
 	cout << "Connected to server: " << host << ":" << port << endl;
 	keyboardThread = std::thread([this]);
+<<<<<<< HEAD
 	socketThread = std
+=======
 	socketThread = std::thread(this);
+>>>>>>> d7edf11b52f0b7d2b4075cdf82d23cec61ad963c
 }
 
 //creating a frame for each user's command
