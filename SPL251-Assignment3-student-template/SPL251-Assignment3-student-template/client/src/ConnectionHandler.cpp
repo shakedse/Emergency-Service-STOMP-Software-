@@ -106,3 +106,11 @@ void ConnectionHandler::close() {
 		std::cout << "closing failed: connection already closed" << std::endl;
 	}
 }
+
+string ConnectionHandler::getHost() const {
+	return host_;
+}
+
+short ConnectionHandler::getPort() const {
+	return port_;
+}

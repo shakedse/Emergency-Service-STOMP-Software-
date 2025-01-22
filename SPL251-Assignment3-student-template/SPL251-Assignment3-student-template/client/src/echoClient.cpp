@@ -2,12 +2,12 @@
 #include "../include/ConnectionHandler.h"
 #include <thread>
 #include <mutex>
+
 using namespace std;
 
 std::mutex consoleMutex;
 std::atomic<bool> shouldTerminate(false);
 std::string loggedUserName = "";
-std::map<std::string, std::vector<Event>> topicToEvents;
 
 /**
  * This code assumes that the server replies the exact text the client sent it (as opposed to the practical session example)
@@ -27,12 +27,10 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
         std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 
         std::string command(lineRead); // get the command from the user
-        std::vector<std::string> currFrame = StompClient::getFrame(command);
+        
         // if the message was not sent
-        while (!currfFrame.empty())
-        {
             int index = 0;
-            if (!connectionHandler.sendLine(currFrame.get(index)))
+            if (!connectionHandler.sendLine(command))
             {
                 std::cout << "Frame did not sent - fail\n"
                           << std::endl;
@@ -42,7 +40,6 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
                 break;
             }
             index++;
-        }
 
         // if the message was sent
         // connectionHandler.sendLine(line) appends '\n' to the message. Therefor we send len+1 bytes.

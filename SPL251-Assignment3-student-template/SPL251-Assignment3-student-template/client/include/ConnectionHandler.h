@@ -48,4 +48,10 @@ public:
 	// Close down the connection properly.
 	void close();
 
+	
+	//added
+	string getHost() const;
+
+	short getPort() const;
+
 }; //class ConnectionHandler
