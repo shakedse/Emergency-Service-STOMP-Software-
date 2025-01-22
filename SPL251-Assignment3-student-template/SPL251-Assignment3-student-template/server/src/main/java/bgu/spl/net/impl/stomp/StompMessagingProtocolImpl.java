@@ -20,16 +20,18 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
     @Override
     public StompFrame process(StompFrame msg) 
     {
+        System.out.println(msg.toString());
         String command = msg.getCommand();
-        if(command == "CONNECT") // the message in a connect message
+        if(command.equals("CONNECT")) // the message in a connect message
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
             String ans = connections.logIn(headers.get("login"), headers.get("passcode"), connectionId);
             if(ans.equals("Login successful")) // the login is successful
             {
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-                ansHeaders.put("version", headers.get("accept -version"));
-                return new StompFrame("CONNECTED", ansHeaders,"");
+                ansHeaders.put("version", headers.get("accept-version"));
+                StompFrame ret = new StompFrame("CONNECTED", ansHeaders,"");
+                return ret;
             }
             else if(ans.equals("User already logged in"))
             {
@@ -44,7 +46,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
                 return new StompFrame("ERROR", ansHeaders, ans);
             }
         }
-        else if(command == "SEND")
+        else if(command.equals("SEND"))
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
             if(!connections.subscribedTo(connectionId, headers.get("destination"))) // first checks if the user is subscribed to the topic it's trying to send massege about
@@ -57,7 +59,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
                 if(headers.containsKey("receipt")) // if a receipt was asked
                 {
                     ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-                    ansHeaders.put("receipt -id:", headers.get("receipt"));
+                    ansHeaders.put("receipt-id:", headers.get("receipt"));
                     return new StompFrame("RECEIPT", headers, "");
                 }
                 return null;
@@ -71,16 +73,16 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
                 return new StompFrame("ERROR", ansHeaders, msg.toString());
             }
         }
-        if(command == "SUBSCRIBE")
+        if(command.equals("SUBSCRIBE"))
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
             String status = connections.subscribe(connectionId, headers.get("destination") , Integer.parseInt(headers.get("id")));
-            if(status == "")
+            if(status.equals("successful subscribe"))
             {
                 if(headers.containsKey("receipt")) // if a receipt was asked
                 {
                     ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-                    ansHeaders.put("receipt -id", headers.get("receipt"));
+                    ansHeaders.put("receipt-id", headers.get("receipt"));
                     return new StompFrame("RECEIPT", headers, "");
                 }
                 return null;
@@ -88,14 +90,14 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
             else
             {
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-                ansHeaders.put("subscription -id", headers.get("id"));
-                ansHeaders.put("massage", headers.get(connectionId + "can't subscribe with the id: " +  headers.get("id")));
+                ansHeaders.put("subscription-id", headers.get("id"));
+                ansHeaders.put("massage", connectionId + "can't subscribe with the id: " +  headers.get("id"));
                 connections.disconnect(connectionId);
                 shouldTerminate = true;
                 return new StompFrame("ERROR", ansHeaders, status);
             }
         }
-        if(command == "UNSUBSCRIBE")
+        if(command.equals("UNSUBSCRIBE"))
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
             if(connections.unsubscribe(connectionId, Integer.parseInt(headers.get("id"))))
@@ -103,7 +105,7 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
                 if(headers.containsKey("receipt")) // if a receipt was asked
                 {
                     ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-                    ansHeaders.put("receipt -id", headers.get("receipt"));
+                    ansHeaders.put("receipt-id", headers.get("receipt"));
                     return new StompFrame("RECEIPT", headers, "");
                 }
                 return null;
@@ -111,18 +113,18 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
             else
             {
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-                ansHeaders.put("subscription -id", headers.get("id"));
+                ansHeaders.put("subscription-id", headers.get("id"));
                 ansHeaders.put("massage", headers.get(connectionId + "can't unsubscribe with the id: " +  headers.get("id")));
                 connections.disconnect(connectionId);
                 shouldTerminate = true;
                 return new StompFrame("ERROR", ansHeaders,"");
             }
         }
-        if(command == "DISCONNECT")
+        if(command.equals("DISCONNECT"))
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
             ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-            ansHeaders.put("receipt -id", headers.get("receipt"));
+            ansHeaders.put("receipt-id", headers.get("receipt"));
             connections.disconnect(connectionId);
             shouldTerminate = true;
             return new StompFrame("RECEIPT", ansHeaders,"");

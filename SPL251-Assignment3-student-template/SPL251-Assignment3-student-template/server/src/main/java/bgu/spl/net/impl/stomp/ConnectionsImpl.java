@@ -48,7 +48,7 @@ public class ConnectionsImpl <T> implements Connections<T>
     {
         if(ConnectionMap.get(connectionId) != null)
             return false;
-        this.ConnectionMap.put(connectionId, connectionHandler);      
+        ConnectionMap.put(connectionId, connectionHandler);    
         subIds.put(connectionId, new ConcurrentHashMap<Integer,String>());
         Idsubs.put(connectionId, new ConcurrentHashMap<String,Integer>());
         return true;
@@ -62,7 +62,7 @@ public class ConnectionsImpl <T> implements Connections<T>
     // subscribing a client to a topic
     public String subscribe(int connectionId, String topic, int subscribeId)
     {
-        if(!ConnectionMap.contains(connectionId))
+        if(!ConnectionMap.containsKey(connectionId))
             return "connectionId does not exists";
         TopicsToId.putIfAbsent(topic, new Vector<Integer>());
         if(TopicsToId.get(topic).contains(connectionId))
@@ -70,7 +70,7 @@ public class ConnectionsImpl <T> implements Connections<T>
         subIds.get(connectionId).put(subscribeId, topic);
         Idsubs.get(connectionId).put(topic, subscribeId);
         TopicsToId.get(topic).add(connectionId);
-        return ""; 
+        return "successful subscribe"; 
     }
 
     //unsubscribe a client from a topic

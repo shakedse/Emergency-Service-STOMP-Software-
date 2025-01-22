@@ -2,34 +2,28 @@ package bgu.spl.net.impl.stomp;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class IdGenarator
-{
-    public static class IdGenaratorHolder
-    {
-        private static IdGenarator IdGenarator = new IdGenarator();
+public class IdGenarator {
 
-        public static IdGenarator getInstance()
-        {
-            return IdGenarator;
-        }
+    // Static nested class for holding the singleton instance
+    public static class IdGenaratorHolder {
+        private static final IdGenarator INSTANCE = new IdGenarator();
     }
 
+    // Atomic integer to ensure thread-safe ID generation
     private AtomicInteger ID;
 
-    public IdGenarator()
-    {
-        ID.set(0);
+    // Private constructor to prevent external instantiation
+    private IdGenarator() {
+        ID = new AtomicInteger(0); // Proper initialization
     }
 
-    public static IdGenarator getInstance()
-    {
-        return IdGenaratorHolder.getInstance();
+    // Public method to get the singleton instance
+    public static IdGenarator getInstance() {
+        return IdGenaratorHolder.INSTANCE;
     }
 
-    public int GenNewId()
-    {
+    // Generate a new unique ID
+    public int GenNewId() {
         return ID.getAndIncrement();
     }
-
-
 }
