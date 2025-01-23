@@ -69,6 +69,8 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
             {
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
                 ansHeaders.put("massage", connectionId + "is not subscribed to: " + headers.get("destination").substring(1));
+                if(headers.containsKey("receipt"))
+                    ansHeaders.put("receipt-id:", headers.get("receipt"));
                 connections.disconnect(connectionId);
                 shouldTerminate = true;
                 return new StompFrame("ERROR", ansHeaders, msg.toString());
@@ -93,6 +95,8 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
                 ansHeaders.put("subscription-id", headers.get("id"));
                 ansHeaders.put("massage", connectionId + "can't subscribe with the id: " +  headers.get("id"));
+                if(headers.containsKey("receipt"))
+                    ansHeaders.put("receipt-id:", headers.get("receipt"));
                 connections.disconnect(connectionId);
                 shouldTerminate = true;
                 return new StompFrame("ERROR", ansHeaders, status);
@@ -116,6 +120,8 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
                 ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
                 ansHeaders.put("subscription-id", headers.get("id"));
                 ansHeaders.put("massage", connectionId + "can't unsubscribe with the id: " +  headers.get("id"));
+                if(headers.containsKey("receipt"))
+                    ansHeaders.put("receipt-id:", headers.get("receipt"));
                 connections.disconnect(connectionId);
                 shouldTerminate = true;
                 return new StompFrame("ERROR", ansHeaders,"");
@@ -125,7 +131,8 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
             ConcurrentHashMap<String, String> ansHeaders = new ConcurrentHashMap<String, String>();
-            ansHeaders.put("receipt-id", headers.get("receipt"));
+            if(headers.containsKey("receipt"))
+                    ansHeaders.put("receipt-id:", headers.get("receipt"));
             connections.disconnect(connectionId);
             shouldTerminate = true;
             return new StompFrame("RECEIPT", ansHeaders,"");
