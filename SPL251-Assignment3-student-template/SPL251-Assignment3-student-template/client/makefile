@@ -1,7 +1,7 @@
 CFLAGS:=-c -Wall -Weffc++ -g -std=c++11 -Iinclude
 LDFLAGS:=-lboost_system -lpthread
 # TODO change the makefile for StompEMIlient
-all: clean bin/StompClient
+all: bin/StompClient.exe run
 
 EchoClient: bin/ConnectionHandler.o bin/echoClient.o
 	g++ -o bin/EchoClient bin/ConnectionHandler.o bin/echoClient.o $(LDFLAGS)
@@ -24,7 +24,13 @@ bin/event.o: src/event.cpp
 bin/StompClient.o: src/StompClient.cpp
 	g++ $(CFLAGS) -o bin/StompClient.o src/StompClient.cpp
 
+bin/StompClient.exe: bin/StompClient.o bin/ConnectionHandler.o bin/event.o
+	g++ -o bin/StompClient bin/StompClient.o bin/ConnectionHandler.o bin/event.o $(LDFLAGS)
+
+run: bin/StompClient
+	./bin/StompClient 127.0.0.1 7777
 .PHONY: clean
+
 clean:
 	rm -f bin/*
 	

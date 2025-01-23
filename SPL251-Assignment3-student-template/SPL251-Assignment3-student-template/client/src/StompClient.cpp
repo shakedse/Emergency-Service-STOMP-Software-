@@ -68,7 +68,7 @@ void StompClient::readFromKeyboard()
 {
     while (!shouldTerminate)
     {
-		std::cout << "in shouldTerminate" << std::endl;
+		//std::cout << "in shouldTerminate" << std::endl;
         const short bufsize = 1024;                     // maximal size of message
         char buf[bufsize];                              // buffer array for the message
         std::cin.getline(buf, bufsize);                 // read the message from the keyboard
@@ -82,7 +82,7 @@ void StompClient::readFromKeyboard()
 
 		if(!connected)
 		{
-			int firstSpaceIndex = command.find(" ");
+			int firstSpaceIndex = command.find(' ');
 			string commandType = command.substr(0, firstSpaceIndex);
 			if (commandType == "login")
 			{
@@ -208,7 +208,7 @@ std::vector<std::string> StompClient::getFrame(string command)
 {
 	vector<string> Frame;
 	string currFrame;
-	int firstSpaceIndex = command.find(" ");
+	int firstSpaceIndex = command.find(' ');
 	string commandType = command.substr(0, firstSpaceIndex);
 	
 	//login command
