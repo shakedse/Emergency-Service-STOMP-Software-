@@ -14,7 +14,6 @@ class StompClient
 {
 private:
 	std::atomic<bool> shouldTerminate;
-	ConnectionHandler connectionHandler;
 	bool connected;
 	int currReceiptId;
 	int currSubscriptionId;
@@ -28,8 +27,8 @@ private:
 	
 
 public:
-	StompClient(const std::string &host, short port);
-	~StompClient();
+	StompClient();
+	~StompClient() = default;
 	void start();
 	std::vector<std::string> getFrame(string command);
 	void makeSummary(string channel, string userName, string filePath);
@@ -39,8 +38,7 @@ public:
 };
 
 // constructor
-StompClient::StompClient(const std::string &host, short port):
-connectionHandler(host, port),
+StompClient::StompClient():
 	shouldTerminate(false),
 	connected(false),
 	currReceiptId(0),
@@ -51,39 +49,7 @@ connectionHandler(host, port),
 	idAndInfo() 	
 {}
 
-int main(int argc, char *argv[])
-{
-	/*if (argc < 3)
-    {
-        std::cerr << "Usage: " << argv[0] << " host port" << std::endl
-                  << std::endl;
-        return -1;
-    }
-    std::string host = argv[1];
-    short port = atoi(argv[2]);*/
-
-
-
-	std::thread keyboardThread(&StompClient::readFromKeyboard); // need to fix this
-
-    /*ConnectionHandler connectionHandler(host, port);
-    if (!connectionHandler.connect())
-    {
-        std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
-        return 1;
-    }
-
-    // initialize threads
-	StompClient stompClient(host, port);
-	
-	std::thread socketThread(&StompClient::readFromSocket, &stompClient, std::ref(connectionHandler));
-
-    // wait for threads to finish
-    keyboardThread.join();
-    socketThread.join();*/
-	return 0;
-}
-
+/*
 void StompClient::start()
 {
 	if(!connectionHandler.connect())
@@ -95,43 +61,111 @@ void StompClient::start()
 	//keyboardThread = std::thread([this]);
 	//socketThread = std
 }
+*/
 
 // read from keyboard
 void StompClient::readFromKeyboard()
 {
-    // From here we will see the rest of the ehco client implementation:
     while (!shouldTerminate)
     {
+		std::cout << "in shouldTerminate" << std::endl;
         const short bufsize = 1024;                     // maximal size of message
         char buf[bufsize];                              // buffer array for the message
         std::cin.getline(buf, bufsize);                 // read the message from the keyboard
         std::string lineRead(buf);                      // convert the message to string
         int len = lineRead.length();                    // get the length of the message
         std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
-
         std::string command(lineRead); // get the command from the user
+		std::string host;
+		short port;
+		bool firstFrame(false);
+
+		if(!connected)
+		{
+			int firstSpaceIndex = command.find(" ");
+			string commandType = command.substr(0, firstSpaceIndex);
+			if (commandType == "login")
+			{
+				std::string arg;
+				std::stringstream ss(command);
+				std::vector<std::string> args;
+
+				// Split the string by space
+				while (ss >> arg) {
+					args.push_back(arg);  // Add each arg to the vector
+				}
+				string hostUser = "stomp.cs.bgu.ac.il"; // host is always this?
+
+				host = args[1].substr(0, args[1].find(":"));
+				std::cout << host << std::endl;
+			
+				std::string portString = args[1].substr(args[1].find(":") + 1, args[1].size() - 1);
+				std::cout << portString << std::endl;
+
+				try {
+					int tempPort = std::stoi(portString);  // Convert string to int
+					port = static_cast<short>(tempPort);  // Cast to short
+				} catch (const std::invalid_argument& e) {
+					std::cerr << "Invalid argument: " << e.what() << std::endl;
+				} catch (const std::out_of_range& e) {
+					std::cerr << "Out of range: " << e.what() << std::endl;
+				}
+			
+				std::string username = args[2];
+				std::cout << username << std::endl;
+			
+				std::string password = args[3];
+				std::cout << password << std::endl;
+				
+				//checking if the login name is already in the system
+				if(loginToPasscode.find(username) != loginToPasscode.end())
+				{
+					std::cout << "Wrong password" << std::endl;
+					continue;
+				}
+				idAndInfo[currSubscriptionId] = {username, password};
+				loginToPasscode[username]= password;
+				currSubscriptionId++;
+
+				//currFrame = "CONNECT" + "\n" + "accept-version:1.2\n" + "host:" + hostUser + "\n" + "login:" + loginName + "\n" + "passcode:" + passcode + "\n" + "\n" + "\n\n\0";
+			}
+			else
+			{
+				std::cout << "must login first!" << std::endl;
+				continue;
+			}
+		}
+		ConnectionHandler connectionHandler(host, port);
+		if (!connectionHandler.connect())
+		{
+			std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
+		}
+		connected = true; //after login the user is connected
         vector<string> currFrame = getFrame(command); // get the frame for the command
         // if the message was not sent
-        while (!currFrame.empty())
-        {
-            int index = 0;
-            if (!connectionHandler.sendLine(currFrame[index]))
-            {
-                std::cout << "Frame did not sent - fail\n"
-                          << std::endl;
-                std::cout << "Could not connect to server\n"
-                          << std::endl;
-                shouldTerminate = true; // terminate the program
-                break;
-            }
-            index++;
-        }
+		if(connected)
+		{
+			for(int i = 0; i < currFrame.size(); i++)
+        	{
+				if (!connectionHandler.sendLine(currFrame[i]))
+				{
+					std::cout << "Frame did not sent - fail\n"
+							<< std::endl;
+					std::cout << "Could not connect to server\n"
+							<< std::endl;
+					shouldTerminate = true; // terminate the program
+					break;
+				}
+        	}
+		}
+       
 
         // if the message was sent
         // connectionHandler.sendLine(line) appends '\n' to the message. Therefor we send len+1 bytes.
         std::cout << "Sent " << len + 1 << " bytes to server" << std::endl;
     }
 }
+
 void  StompClient::readFromSocket(ConnectionHandler &connectionHandler)
 {
     while (!shouldTerminate)
@@ -168,6 +202,7 @@ void  StompClient::readFromSocket(ConnectionHandler &connectionHandler)
         }
     }
 }
+
 //creating a frame for each user's command
 std::vector<std::string> StompClient::getFrame(string command)
 {
@@ -184,54 +219,6 @@ std::vector<std::string> StompClient::getFrame(string command)
 			cout << "The client is already logged in, log out before trying again" << endl;
 			return {};
 		}
-
-		std::string arg;
-		std::stringstream ss(command);
-		std::vector<std::string> args;
-
-		// Split the string by space
-		while (ss >> arg) {
-			args.push_back(arg);  // Add each arg to the vector
-		}
-		string hostUser = "stomp.cs.bgu.ac.il";
-
-		std::string host = args[1].substr(0, args[1].find(":"));
-		cout << host << endl;
-		
-		std::string portString = args[1].substr(args[1].find(":") + 1, args[1].size() - 1);
-		cout << portString << endl;
-		short port;
-		try {
-			int tempPort = std::stoi(portString);  // Convert string to int
-			port = static_cast<short>(tempPort);  // Cast to short
-		} catch (const std::invalid_argument& e) {
-			std::cerr << "Invalid argument: " << e.what() << std::endl;
-		} catch (const std::out_of_range& e) {
-			std::cerr << "Out of range: " << e.what() << std::endl;
-		}
-		
-		std::string username = args[2];
-		cout << username << endl;
-		
-		std::string password = args[3];
-		cout << password << endl;
-
-		ConnectionHandler connectionHandler(host, port);
-
-		connected = true; //after login the user is connected
-
-		//checking if the login name is already in the system
-		if(loginToPasscode.find(username) != loginToPasscode.end())
-		{
-			cout << "Wrong password" << endl;
-			return {};
-		}
-		idAndInfo[currSubscriptionId] = {username, password};
-		loginToPasscode[username]= password;
-		currSubscriptionId++;
-
-		//currFrame = "CONNECT" + "\n" + "accept-version:1.2\n" + "host:" + hostUser + "\n" + "login:" + loginName + "\n" + "passcode:" + passcode + "\n" + "\n" + "\n\n\0";
-		Frame.push_back(currFrame);
 	}
 
 	//join command
@@ -414,11 +401,49 @@ void StompClient::makeSummary(string channel, string userName, string filePath)
 
 }
 //converting the epoch time to date
-	std::string StompClient::epochToDate(int epochTime) 
-	{
-		time_t rawTime = epochTime;
-    	struct tm *timeInfo = localtime(&rawTime);
-    	char buffer[20];
-    	strftime(buffer, sizeof(buffer), "%d/%m/%y %H:%M", timeInfo);
-    	return std::string(buffer);
-	}
+std::string StompClient::epochToDate(int epochTime) 
+{
+	time_t rawTime = epochTime;
+	struct tm *timeInfo = localtime(&rawTime);
+	char buffer[20];
+	strftime(buffer, sizeof(buffer), "%d/%m/%y %H:%M", timeInfo);
+	return std::string(buffer);
+}
+
+int main(int argc, char *argv[])
+{
+	StompClient stompClient;  // Create an instance of StompClient
+    std::thread keyboardThread(std::bind(&StompClient::readFromKeyboard, &stompClient)); // Pass the instance
+    keyboardThread.join(); // Ensure that the thread finishes before the program exits
+    return 0;
+
+	/*if (argc < 3)
+    {
+        std::cerr << "Usage: " << argv[0] << " host port" << std::endl
+                  << std::endl;
+        return -1;
+    }
+    std::string host = argv[1];
+    short port = atoi(argv[2]);*/
+
+
+
+	
+
+    /*ConnectionHandler connectionHandler(host, port);
+    if (!connectionHandler.connect())
+    {
+        std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
+        return 1;
+    }
+
+    // initialize threads
+	StompClient stompClient(host, port);
+	
+	std::thread socketThread(&StompClient::readFromSocket, &stompClient, std::ref(connectionHandler));
+
+    // wait for threads to finish
+    keyboardThread.join();
+    socketThread.join();*/
+	
+}
