@@ -10,34 +10,6 @@ using namespace std;
 #include <string>
 #include "../include/event.h" 
 
-int main(int argc, char *argv[])
-{
-	if (argc < 3)
-    {
-        std::cerr << "Usage: " << argv[0] << " host port" << std::endl
-                  << std::endl;
-        return -1;
-    }
-    std::string host = argv[1];
-    short port = atoi(argv[2]);
-
-    ConnectionHandler connectionHandler(host, port);
-    if (!connectionHandler.connect())
-    {
-        std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
-        return 1;
-    }
-
-    // initialize threads
-	StompClient stompClient(host, port);
-	std::thread keyboardThread(&StompClient::readFromKeyboard, &stompClient, std::ref(connectionHandler));
-	std::thread socketThread(&StompClient::readFromSocket, &stompClient, std::ref(connectionHandler));
-
-    // wait for threads to finish
-    keyboardThread.join();
-    socketThread.join();
-}
-
 class StompClient
 {
 private:
@@ -63,7 +35,7 @@ public:
 	void makeSummary(string channel, string userName, string filePath);
 	std::string epochToDate(int epochTime);
 	void readFromSocket(ConnectionHandler &connectionHandler);
-	void readFromKeyboard(ConnectionHandler &connectionHandler);
+	void readFromKeyboard();
 };
 
 // constructor
@@ -79,6 +51,38 @@ connectionHandler(host, port),
 	idAndInfo() 	
 {}
 
+int main(int argc, char *argv[])
+{
+	/*if (argc < 3)
+    {
+        std::cerr << "Usage: " << argv[0] << " host port" << std::endl
+                  << std::endl;
+        return -1;
+    }
+    std::string host = argv[1];
+    short port = atoi(argv[2]);*/
+
+
+
+	std::thread keyboardThread(&StompClient::readFromKeyboard); // need to fix this
+
+    /*ConnectionHandler connectionHandler(host, port);
+    if (!connectionHandler.connect())
+    {
+        std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
+        return 1;
+    }
+
+    // initialize threads
+	StompClient stompClient(host, port);
+	
+	std::thread socketThread(&StompClient::readFromSocket, &stompClient, std::ref(connectionHandler));
+
+    // wait for threads to finish
+    keyboardThread.join();
+    socketThread.join();*/
+	return 0;
+}
 
 void StompClient::start()
 {
@@ -90,11 +94,10 @@ void StompClient::start()
 	cout << "Connected to server: host - " << connectionHandler.getHost() << "port -" << connectionHandler.getPort() << endl;
 	//keyboardThread = std::thread([this]);
 	//socketThread = std
-
-	
 }
+
 // read from keyboard
-void  StompClient::readFromKeyboard(ConnectionHandler &connectionHandler)
+void StompClient::readFromKeyboard()
 {
     // From here we will see the rest of the ehco client implementation:
     while (!shouldTerminate)
@@ -106,7 +109,7 @@ void  StompClient::readFromKeyboard(ConnectionHandler &connectionHandler)
         int len = lineRead.length();                    // get the length of the message
         std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 
-        std::string command(lineRead); 	// get the command from the user
+        std::string command(lineRead); // get the command from the user
         vector<string> currFrame = getFrame(command); // get the frame for the command
         // if the message was not sent
         while (!currFrame.empty())
@@ -181,33 +184,53 @@ std::vector<std::string> StompClient::getFrame(string command)
 			cout << "The client is already logged in, log out before trying again" << endl;
 			return {};
 		}
-		
-		int hostIndex = command.find(":");
-		// ????????string host = command.substr(fisrtSpaceIndex + 1, hostIndex - fisrtSpaceIndex - 1);
-		string hostUser = "stomp.cs.bgu.ac.il";
-		cout << "host:" <<hostUser << endl;
 
-		int loginIndex = command.find(" ", firstSpaceIndex + 1);								   // finding the login index
-		int passcodeIndex = command.find(" ", loginIndex + 1);									   // finding the passcode index
-		string loginName = command.substr(loginIndex + 1, passcodeIndex - loginIndex - 1);		   // getting the login name
-		string passcode = command.substr(passcodeIndex + 1, command.length() - passcodeIndex - 1); // getting the passcode
+		std::string arg;
+		std::stringstream ss(command);
+		std::vector<std::string> args;
+
+		// Split the string by space
+		while (ss >> arg) {
+			args.push_back(arg);  // Add each arg to the vector
+		}
+		string hostUser = "stomp.cs.bgu.ac.il";
+
+		std::string host = args[1].substr(0, args[1].find(":"));
+		cout << host << endl;
 		
-		cout << "login:" <<loginName << endl;
-		cout << "passcode:" <<passcode << endl;
+		std::string portString = args[1].substr(args[1].find(":") + 1, args[1].size() - 1);
+		cout << portString << endl;
+		short port;
+		try {
+			int tempPort = std::stoi(portString);  // Convert string to int
+			port = static_cast<short>(tempPort);  // Cast to short
+		} catch (const std::invalid_argument& e) {
+			std::cerr << "Invalid argument: " << e.what() << std::endl;
+		} catch (const std::out_of_range& e) {
+			std::cerr << "Out of range: " << e.what() << std::endl;
+		}
+		
+		std::string username = args[2];
+		cout << username << endl;
+		
+		std::string password = args[3];
+		cout << password << endl;
+
+		ConnectionHandler connectionHandler(host, port);
 
 		connected = true; //after login the user is connected
 
 		//checking if the login name is already in the system
-		if(loginToPasscode.find(loginName) != loginToPasscode.end())
+		if(loginToPasscode.find(username) != loginToPasscode.end())
 		{
 			cout << "Wrong password" << endl;
 			return {};
 		}
-		idAndInfo[currSubscriptionId] = {loginName, passcode};
-		loginToPasscode[loginName]= passcode;
+		idAndInfo[currSubscriptionId] = {username, password};
+		loginToPasscode[username]= password;
 		currSubscriptionId++;
 
-		currFrame = "CONNECT"+ "\n" + "accept-version:1.2\n" + "host:" + hostUser + "\n" + "login:" + loginName + "\n" + "passcode:" + passcode + "\n" + "\n" + "\n\n\0";
+		//currFrame = "CONNECT" + "\n" + "accept-version:1.2\n" + "host:" + hostUser + "\n" + "login:" + loginName + "\n" + "passcode:" + passcode + "\n" + "\n" + "\n\n\0";
 		Frame.push_back(currFrame);
 	}
 
@@ -223,7 +246,7 @@ std::vector<std::string> StompClient::getFrame(string command)
 		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
 		cout << "channel sub:" <<channel << endl;
 
-		currFrame = "SUBSCRIBE\n" + "destination:/" + channel + "\n" + "id:" + std::to_string(currSubscriptionId) +"\n" + "receipt:" + std::to_string(currReceiptId) +"\n" + "\n\n\0";
+		//currFrame = "SUBSCRIBE\n" + "destination:/" + channel + "\n" + "id:" + std::to_string(currSubscriptionId) +"\n" + "receipt:" + std::to_string(currReceiptId) +"\n" + "\n\n\0";
 		currReceiptId++;
 		Frame.push_back(currFrame);
 	}
@@ -240,7 +263,7 @@ std::vector<std::string> StompClient::getFrame(string command)
 		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
 		cout << "channel unsub:" << channel << endl;
 
-		currFrame = "UNSUBSCRIBE\n" + "id:" + std::to_string(currSubscriptionId) + "\n" + "receipt:" + std::to_string(currReceiptId) + "\n" + "\n\n\0";
+		//currFrame = "UNSUBSCRIBE\n" + "id:" + std::to_string(currSubscriptionId) + "\n" + "receipt:" + std::to_string(currReceiptId) + "\n" + "\n\n\0";
 		Frame.push_back(currFrame);
 	}
 
@@ -258,7 +281,7 @@ std::vector<std::string> StompClient::getFrame(string command)
 
 		for (Event event : parsedFile.events)
 		{
-			currFrame = "SEND\n" +
+			//currFrame = "SEND\n" +
 						"destination:/" + std::string(event.get_channel_name()) + "\n\n" +
 						"user:" + event.getEventOwnerUser() + "\n" +
 						"city:" + event.get_city() + "\n" +
@@ -301,7 +324,7 @@ std::vector<std::string> StompClient::getFrame(string command)
 			cout << "”The client is not logged in, log in before trying to logout" << endl;
 			return {};
 		}
-		currFrame =  "DISCONNECT\n" + "receipt:1\n" + "\n" + "\n\n\0";
+		//currFrame =  "DISCONNECT\n" + "receipt:1\n" + "\n" + "\n\n\0";
 		Frame.push_back(currFrame);
 	}
 	return Frame;

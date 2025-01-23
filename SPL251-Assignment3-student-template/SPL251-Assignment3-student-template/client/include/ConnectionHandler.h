@@ -50,7 +50,7 @@ public:
 
 	
 	//added
-	string getHost() const;
+	std::string getHost() const;
 
 	short getPort() const;
 

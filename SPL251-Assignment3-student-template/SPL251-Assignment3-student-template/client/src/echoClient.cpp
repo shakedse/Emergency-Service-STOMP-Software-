@@ -90,7 +90,7 @@ void readFromSocket(ConnectionHandler &connectionHandler)
         }
     }
 }
-
+/*
 int main(int argc, char *argv[])
 {
     if (argc < 3)
@@ -117,4 +117,4 @@ int main(int argc, char *argv[])
     keyboardThread.join();
     socketThread.join();
     return 0;
-}
+}*/
