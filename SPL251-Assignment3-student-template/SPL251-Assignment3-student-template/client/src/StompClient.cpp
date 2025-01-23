@@ -106,7 +106,7 @@ void  StompClient::readFromKeyboard(ConnectionHandler &connectionHandler)
         int len = lineRead.length();                    // get the length of the message
         std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 
-        std::string command(lineRead); // get the command from the user
+        std::string command(lineRead); 	// get the command from the user
         vector<string> currFrame = getFrame(command); // get the frame for the command
         // if the message was not sent
         while (!currFrame.empty())
