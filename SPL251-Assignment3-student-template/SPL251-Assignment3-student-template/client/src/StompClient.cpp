@@ -10,33 +10,18 @@ using namespace std;
 #include <string>
 #include "../include/event.h" 
 
-class StompClient
-{
-private:
-	std::atomic<bool> shouldTerminate;
-	bool connected;
-	int currReceiptId;
-	int currSubscriptionId;
-	std::mutex consoleMutex;
-	//thread keyboardThread;
-	//thread socketThread;
-	map<int, string> receiptIdToCommand;			//receipt id and the frame
-	map<string,string> loginToPasscode;				//login and passcode
-	map<string, vector<Event>> userToReports;		//user and his reports
-	map<int, vector<string>> idAndInfo;				//id and login info
-	
 
-public:
-	StompClient();
-	~StompClient() = default;
-	void start();
-	std::vector<std::string> getFrame(string command);
-	void makeSummary(string channel, string userName, string filePath);
-	std::string epochToDate(int epochTime);
-	void readFromSocket(ConnectionHandler &connectionHandler);
-	void readFromKeyboard();
-};
-
+bool connected = false;
+int currReceiptId;
+int currSubscriptionId;
+std::mutex consoleMutex;
+//thread keyboardThread;
+//thread socketThread;
+//map<int, string> receiptIdToCommand;			//receipt id and the frame
+map<string,string> loginToPasscode;				//login and passcode
+map<string, vector<Event>> userToReports;		//user and his reports
+map<int, vector<string>> idAndInfo;		
+/*
 // constructor
 StompClient::StompClient():
 	shouldTerminate(false),
@@ -46,9 +31,9 @@ StompClient::StompClient():
 	receiptIdToCommand(),
 	loginToPasscode(),
 	userToReports(),
-	idAndInfo() 	
+	idAndInfo()
 {}
-
+*/
 /*
 void StompClient::start()
 {
@@ -63,185 +48,195 @@ void StompClient::start()
 }
 */
 
-// read from keyboard
-void StompClient::readFromKeyboard()
+// converting the epoch time to date
+std::string epochToDate(int epochTime)
 {
-    while (!shouldTerminate)
-    {
-		//std::cout << "in shouldTerminate" << std::endl;
-        const short bufsize = 1024;                     // maximal size of message
-        char buf[bufsize];                              // buffer array for the message
-        std::cin.getline(buf, bufsize);                 // read the message from the keyboard
-        std::string lineRead(buf);                      // convert the message to string
-        int len = lineRead.length();                    // get the length of the message
-        std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
-        std::string command(lineRead); // get the command from the user
-		std::string host;
-		short port;
-		bool firstFrame(false);
-
-		if(!connected)
-		{
-			int firstSpaceIndex = command.find(' ');
-			string commandType = command.substr(0, firstSpaceIndex);
-			if (commandType == "login")
-			{
-				std::string arg;
-				std::stringstream ss(command);
-				std::vector<std::string> args;
-
-				// Split the string by space
-				while (ss >> arg) {
-					args.push_back(arg);  // Add each arg to the vector
-				}
-				string hostUser = "stomp.cs.bgu.ac.il"; // host is always this?
-
-				host = args[1].substr(0, args[1].find(":"));
-				std::cout << host << std::endl;
-			
-				std::string portString = args[1].substr(args[1].find(":") + 1, args[1].size() - 1);
-				std::cout << portString << std::endl;
-
-				try {
-					int tempPort = std::stoi(portString);  // Convert string to int
-					port = static_cast<short>(tempPort);  // Cast to short
-				} catch (const std::invalid_argument& e) {
-					std::cerr << "Invalid argument: " << e.what() << std::endl;
-				} catch (const std::out_of_range& e) {
-					std::cerr << "Out of range: " << e.what() << std::endl;
-				}
-			
-				std::string username = args[2];
-				std::cout << username << std::endl;
-			
-				std::string password = args[3];
-				std::cout << password << std::endl;
-				
-				//checking if the login name is already in the system
-				if(loginToPasscode.find(username) != loginToPasscode.end())
-				{
-					std::cout << "Wrong password" << std::endl;
-					continue;
-				}
-				idAndInfo[currSubscriptionId] = {username, password};
-				loginToPasscode[username]= password;
-				currSubscriptionId++;
-
-				//currFrame = "CONNECT" + "\n" + "accept-version:1.2\n" + "host:" + hostUser + "\n" + "login:" + loginName + "\n" + "passcode:" + passcode + "\n" + "\n" + "\n\n\0";
-			}
-			else
-			{
-				std::cout << "must login first!" << std::endl;
-				continue;
-			}
-		}
-		ConnectionHandler connectionHandler(host, port);
-		if (!connectionHandler.connect())
-		{
-			std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
-		}
-		connected = true; //after login the user is connected
-        vector<string> currFrame = getFrame(command); // get the frame for the command
-        // if the message was not sent
-		if(connected)
-		{
-			for(int i = 0; i < currFrame.size(); i++)
-        	{
-				if (!connectionHandler.sendLine(currFrame[i]))
-				{
-					std::cout << "Frame did not sent - fail\n"
-							<< std::endl;
-					std::cout << "Could not connect to server\n"
-							<< std::endl;
-					shouldTerminate = true; // terminate the program
-					break;
-				}
-        	}
-		}
-       
-
-        // if the message was sent
-        // connectionHandler.sendLine(line) appends '\n' to the message. Therefor we send len+1 bytes.
-        std::cout << "Sent " << len + 1 << " bytes to server" << std::endl;
-    }
+	time_t rawTime = epochTime;
+	struct tm *timeInfo = localtime(&rawTime);
+	char buffer[20];
+	strftime(buffer, sizeof(buffer), "%d/%m/%y %H:%M", timeInfo);
+	return std::string(buffer);
 }
 
-void  StompClient::readFromSocket(ConnectionHandler &connectionHandler)
+std::atomic<bool> shouldTerminate(false);
+void makeSummary(string channel, string userName, string filePath)
 {
-    while (!shouldTerminate)
-    {
-        std::string answer; // the message from the server
-
-        // Get back an answer: by using the expected number of bytes (len bytes + newline delimiter)
-        // We could also use: connectionHandler.getline(answer) and then get the answer without the newline char at the end
-
-        std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
-        if (!connectionHandler.getLine(answer))         // get the message from the server
-        {                                               // if the message was not received
-            std::cout << "Disconnected. Exiting...\n"
-                      << std::endl;
-            shouldTerminate = true;
-            break;
-        }
-
-        // if the message was received
-        int len = answer.length(); // get the length of the message
-
-        // A C string must end with a 0 char delimiter.  When we filled the answer buffer from the socket
-        // we filled up to the \n char - we must make sure now that a 0 char is also present. So we truncate last character.
-
-        answer.resize(len - 1); // remove the '\n' character from the message
-        std::cout << "Reply: " << answer << " " << len << " bytes " << std::endl
-                  << std::endl;
-        if (answer == "bye")
-        {
-            std::cout << "Exiting...\n"
-                      << std::endl;
-            break;
-        shouldTerminate = true;
-        }
-    }
-}
-
-//creating a frame for each user's command
-std::vector<std::string> StompClient::getFrame(string command)
-{
-	vector<string> Frame;
-	string currFrame;
-	int firstSpaceIndex = command.find(' ');
-	string commandType = command.substr(0, firstSpaceIndex);
-	
-	//login command
-	if (commandType == "login")
+	// ig the user has no reports
+	if (userToReports.find(userName) == userToReports.end())
 	{
-		if(connected)
+		std::cout << "No reports for this user" << endl;
+		return;
+	}
+	std::ofstream file(filePath, std::ios::out);
+	if (!file.is_open())
+	{
+		std::cout << "Could not open the file" << endl;
+		return;
+	}
+	vector<Event> finalSummary = {};
+	vector<Event> relevantReports = {};
+
+	// initiating the statistics
+	int reportsNum = 0;
+	int activeEventsNum = 0;
+	int forceArrivalNum = 0;
+
+	// going over all the reports of the user
+	for (Event &report : userToReports[userName])
+	{
+		if (report.get_channel_name() == channel) // if the report is about the channel
 		{
-			cout << "The client is already logged in, log out before trying again" << endl;
-			return {};
+			relevantReports.push_back(report);
+			reportsNum++;
+			if (report.get_general_information().at("forces arrival at scene") == "true")
+			{
+				forceArrivalNum++;
+			}
+			if (report.get_general_information().at("active") == "true")
+			{
+				activeEventsNum++;
+			}
 		}
 	}
 
-	//join command
+	// sorting the reports by the date time
+	std::sort(relevantReports.begin(), relevantReports.end(), [](const Event &a, const Event &b)
+			  {
+	if (a.get_date_time() == b.get_date_time()) {
+		return a.get_name() < b.get_name();
+	}
+	return a.get_date_time() < b.get_date_time(); });
+
+	// the beginning of the summary
+	file << "Channel " << channel << "\n";
+	file << "Stats:\n";
+	file << "Total: " << std::to_string(reportsNum) << "\n";
+	file << "active: " << std::to_string(activeEventsNum) << "\n";
+	file << "forces arrival at scene: " << std::to_string(forceArrivalNum) << "\n";
+	file << "Event Reports:\n\n";
+
+	// creating the summary for each report
+	for (const Event &report : relevantReports)
+	{
+		int i = 1;
+		std::string description = report.get_description();
+		if (description.length() > 27)
+		{
+			description = description.substr(0, 27) + "...";
+		}
+
+		file << "Report_" << std::to_string(i) << ":\n";
+		file << "    city:" << report.get_city() << "\n";
+		file << "    date time:" << epochToDate(report.get_date_time()) << "\n";
+		file << "    event name:" << report.get_name() << "\n";
+		file << "    summary:" << description << "\n";
+
+		i++;
+	}
+	// writing the summary to the file
+
+	file.close();
+	cout << "Summary has been written to the file" << filePath << endl;
+}
+
+
+
+// creating a frame for each user's command
+std::vector<std::string> getFrame(string command)
+{
+	vector<string> Frame;
+	// string currFrame="";
+	int firstSpaceIndex = command.find(' ');
+	string commandType = command.substr(0, firstSpaceIndex);
+		std::cout << "step 3" << std::endl;
+
+	// login command
+	if (commandType == "login")
+	{
+		if (connected)
+		{
+			cout << "”The client is already logged in" << endl;
+			return {};
+		}
+		else
+		{
+			std::cout << "step 4" << std::endl;
+			int firstSpaceIndex = command.find(' ');
+			string commandType = command.substr(0, firstSpaceIndex);
+			std::string arg;
+			std::stringstream ss(command);
+			std::vector<std::string> args;
+
+			// Split the string by space
+			while (ss >> arg)
+			{
+				args.push_back(arg); // Add each arg to the vector
+			}
+			string hostUser = "stomp.cs.bgu.ac.il"; // host is always this?
+
+			string host = args[1].substr(0, args[1].find(':'));
+			std::cout << host << std::endl;
+
+			std::string portString = args[1].substr(args[1].find(':') + 1, args[1].size() - 1);
+			std::cout << portString << std::endl;
+
+			try
+			{
+				int tempPort = std::stoi(portString);	   // Convert string to int
+				short port = static_cast<short>(tempPort); // Cast to short
+			}
+			catch (const std::invalid_argument &e)
+			{
+				std::cerr << "Invalid argument: " << e.what() << std::endl;
+			}
+			catch (const std::out_of_range &e)
+			{
+				std::cerr << "Out of range: " << e.what() << std::endl;
+			}
+
+			std::string username = args[2];
+			std::cout << username << std::endl;
+
+			std::string password = args[3];
+			std::cout << password << std::endl;
+
+			// checking if the login name is already in the system
+			if (loginToPasscode.find(username) != loginToPasscode.end())
+			{
+				std::cout << "Wrong password" << std::endl;
+				// continue;
+			}
+			idAndInfo[currSubscriptionId] = {username, password};
+			loginToPasscode[username] = password;
+			currSubscriptionId++;
+			connected = true; // after login the user is connected
+			std::cout << "CONNECT\n accept-version:1.2\n host:" + hostUser + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\n" + "\n\n" << std::endl;
+
+			Frame.push_back("CONNECT\n accept-version:1.2\n host:" + hostUser + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\n" + "\n\n");
+			return Frame;
+		}
+	}
+	// join command
 	else if (commandType == "join") // subscribing to a channel
 	{
-		if(!connected)
+		std::cout << "step 5" << std::endl;
+		if (!connected)
 		{
 			cout << "”The client is not logged in, log in before trying to join" << endl;
 			return {};
 		}
-		int channelIndex = command.find(" ", firstSpaceIndex + 1);								// finding the channel index
+		int channelIndex = command.find(' ', firstSpaceIndex + 1);								// finding the channel index
 		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
-		cout << "channel sub:" <<channel << endl;
-
-		//currFrame = "SUBSCRIBE\n" + "destination:/" + channel + "\n" + "id:" + std::to_string(currSubscriptionId) +"\n" + "receipt:" + std::to_string(currReceiptId) +"\n" + "\n\n\0";
+		cout << "channel sub:" << channel << endl;
+		std::cout << "SUBSCRIBE\n destination:" + channel + "\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\n\n"<< std::endl;
+		Frame.push_back("SUBSCRIBE\n destination:" + channel + "\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\n\n");
 		currReceiptId++;
-		Frame.push_back(currFrame);
 	}
 
-	//exit command
+	// exit command
 	else if (commandType == "exit")
 	{
-		if(!connected)
+		if (!connected)
 		{
 			cout << "”The client is not logged in, log in before trying to exit" << endl;
 			return {};
@@ -250,14 +245,13 @@ std::vector<std::string> StompClient::getFrame(string command)
 		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
 		cout << "channel unsub:" << channel << endl;
 
-		//currFrame = "UNSUBSCRIBE\n" + "id:" + std::to_string(currSubscriptionId) + "\n" + "receipt:" + std::to_string(currReceiptId) + "\n" + "\n\n\0";
-		Frame.push_back(currFrame);
+		Frame.push_back("UNSUBSCRIBE\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\n\n");
 	}
 
-	//report command
+	// report command
 	else if (commandType == "report")
 	{
-		if(!connected)
+		if (!connected)
 		{
 			cout << "”The client is not logged in, log in before trying to report" << endl;
 			return {};
@@ -268,182 +262,247 @@ std::vector<std::string> StompClient::getFrame(string command)
 
 		for (Event event : parsedFile.events)
 		{
-			//currFrame = "SEND\n" +
-						"destination:/" + std::string(event.get_channel_name()) + "\n\n" +
-						"user:" + event.getEventOwnerUser() + "\n" +
-						"city:" + event.get_city() + "\n" +
-						"event name:" + event.get_name() + "\n" +
-						"date time:" + to_string(event.get_date_time()) + "\n" +
-						"general information:" + "\n" +
-						"    active:" + event.get_general_information().at("active") + "\n" +
-						"    forces arrival at scene:" + event.get_general_information().at("forces arrival at scene") + "\n" +
-						"description:" + event.get_description() + "\n" + event.get_description() + "\n\n"+"\0";
+			std::string currFrame = "SEND\n destination:/" + std::string(event.get_channel_name()) + "\n\n" +
+									"user:" + event.getEventOwnerUser() + "\n" +
+									"city:" + event.get_city() + "\n" +
+									"event name:" + event.get_name() + "\n" +
+									"date time:" + to_string(event.get_date_time()) + "\n" +
+									"general information:" + "\n" +
+									"    active:" + event.get_general_information().at("active") + "\n" +
+									"    forces arrival at scene:" + event.get_general_information().at("forces arrival at scene") + "\n" +
+									"description:" + event.get_description() + "\n" + event.get_description() + "\n\n" + "\0";
 
 			userToReports[event.getEventOwnerUser()].push_back(currFrame);
 			Frame.push_back(currFrame);
 		}
 	}
 
-	//summary command
+	// summary command
 	else if (commandType == "summary")
 	{
-		if(!connected)
+		if (!connected)
 		{
 			cout << "”The client is not logged in, log in before trying to summary" << endl;
 			return {};
 		}
-		int channelIndex = 9; //summary+" "
+		int channelIndex = 9;									 // summary+" "
 		int usernameIndex = command.find(" ", channelIndex + 1); // finding the index after the summary
-		int fileIndex = command.find(" ", usernameIndex + 1); // finding the index after the username
-		
-		string channel = command.substr(channelIndex, usernameIndex - channelIndex - 1); // getting the channel
+		int fileIndex = command.find(" ", usernameIndex + 1);	 // finding the index after the username
+
+		string channel = command.substr(channelIndex, usernameIndex - channelIndex - 1);	// getting the channel
 		string userName = command.substr(usernameIndex + 1, fileIndex - usernameIndex - 1); // getting the user name
-		string filePath = command.substr(fileIndex + 1, command.length() - fileIndex - 1); // getting the file path
-		cout << "user name:" <<userName << endl;
+		string filePath = command.substr(fileIndex + 1, command.length() - fileIndex - 1);	// getting the file path
+		cout << "user name:" << userName << endl;
 		makeSummary(channel, userName, filePath);
 	}
 
-	//logout command
+	// logout command
 	else if (commandType == "logout")
 	{
-		if(!connected)
+		if (!connected)
 		{
 			cout << "”The client is not logged in, log in before trying to logout" << endl;
 			return {};
 		}
-		//currFrame =  "DISCONNECT\n" + "receipt:1\n" + "\n" + "\n\n\0";
-		Frame.push_back(currFrame);
+		Frame.push_back("DISCONNECT\n receipt:1\n\n");
 	}
 	return Frame;
 }
 
-void StompClient::makeSummary(string channel, string userName, string filePath)
+void readFromKeyboard(ConnectionHandler &connectionHandler)
 {
-	//ig the user has no reports
-	if(userToReports.find(userName) == userToReports.end())
+	std::cout << "step 2" << std::endl;
+	// From here we will see the rest of the ehco client implementation:
+	while (!shouldTerminate)
 	{
-		cout << "No reports for this user" << endl;
-		return ;
-	}
-	std::ofstream file(filePath, std::ios::out);
-	if(!file.is_open())
-	{
-		cout << "Could not open the file" << endl;
-		return ;
-	} 
-	vector<Event> finalSummary = {};
-	vector<Event> relevantReports = {};
 
-	//initiating the statistics
-	int reportsNum = 0;
-	int activeEventsNum = 0;
-	int forceArrivalNum = 0;
+		const short bufsize = 1024;								// maximal size of message
+		char buf[bufsize];										// buffer array for the message
+		std::cin.getline(buf, bufsize);							// read the message from the keyboard
+		std::string lineRead(buf);								// convert the message to string
+		int len = lineRead.length();							// get the length of the message
+		std::vector<std::string> commands = getFrame(lineRead); // get the command from the user
 
-	//going over all the reports of the user
-	for( Event &report : userToReports[userName])
-	{
-		if(report.get_channel_name() == channel)//if the report is about the channel
+		// if the message was not sent
+		int index = 0;
+		std::cout << "in" + index << std::endl;
+		index++;
+		for (std::string command : commands)
 		{
-			relevantReports.push_back(report);
-			reportsNum++;
-			if(report.get_general_information().at("forces arrival at scene") == "true")
+
+			std::cout << "in" + index << std::endl;
+
+			std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+			if (!connectionHandler.sendLine(command))
 			{
-				forceArrivalNum++;
-			}
-			if(report.get_general_information().at("active") == "true")
-			{
-				activeEventsNum++;
+				std::cerr << "Frame did not sent - fail\n"
+						  << std::endl;
+				std::cerr << "Could not connect to server\n"
+						  << std::endl;
+				shouldTerminate = true; // terminate the program
+				break;
 			}
 		}
+		index++;
+		std::cout << "in" + index << std::endl;
+
+		// if the message was sent
+		// connectionHandler.sendLine(line) appends '\n' to the message. Therefor we send len+1 bytes.
+		std::cout << "Sent " << len + 1 << " bytes to server" << std::endl;
 	}
-
-	//sorting the reports by the date time
-	std::sort(relevantReports.begin(), relevantReports.end(), [](const Event &a, const Event &b) 
-	{
-	if (a.get_date_time() == b.get_date_time()) {
-		return a.get_name() < b.get_name();
-	}
-	return a.get_date_time() < b.get_date_time();
-	});
-
-//the beginning of the summary
-	file << "Channel " << channel << "\n" ;
-    file << "Stats:\n" ;
-    file << "Total: " << std::to_string(reportsNum) << "\n" ;
-    file << "active: " << std::to_string(activeEventsNum) << "\n" ;
-    file << "forces arrival at scene: " << std::to_string(forceArrivalNum) << "\n" ;
-    file << "Event Reports:\n\n";
-
-
-	//creating the summary for each report
-	for(const Event &report : relevantReports)
-	{
-		int i=1;
-		std::string description = report.get_description();
-		if(description.length() > 27)
-		{
-			description = description.substr(0, 27) + "...";
-		}
-
-		file <<  "Report_" << std::to_string(i) <<":\n" ;
-		file << "    city:" << report.get_city() << "\n" ;
-		file << "    date time:" << epochToDate(report.get_date_time()) << "\n" ;
-		file << "    event name:" << report.get_name() << "\n" ;
-		file << "    summary:" << description << "\n";
-		
-		i++;
-	}
-	//writing the summary to the file
-
-	
-	file.close();
-	cout << "Summary has been written to the file" << filePath << endl;
-
 }
-//converting the epoch time to date
-std::string StompClient::epochToDate(int epochTime) 
+
+void readFromSocket(ConnectionHandler &connectionHandler)
 {
-	time_t rawTime = epochTime;
-	struct tm *timeInfo = localtime(&rawTime);
-	char buffer[20];
-	strftime(buffer, sizeof(buffer), "%d/%m/%y %H:%M", timeInfo);
-	return std::string(buffer);
+	while (!shouldTerminate)
+	{
+		std::string answer; // the message from the server
+
+		// Get back an answer: by using the expected number of bytes (len bytes + newline delimiter)
+		// We could also use: connectionHandler.getline(answer) and then get the answer without the newline char at the end
+
+		std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+		if (!connectionHandler.getLine(answer))			// get the message from the server
+		{												// if the message was not received
+			std::cout << "Disconnected. Exiting...\n"
+					  << std::endl;
+			shouldTerminate = true;
+			break;
+		}
+
+		// if the message was received
+		int len = answer.length(); // get the length of the message
+
+		// A C string must end with a 0 char delimiter.  When we filled the answer buffer from the socket
+		// we filled up to the \n char - we must make sure now that a 0 char is also present. So we truncate last character.
+
+		answer.resize(len - 1); // remove the '\n' character from the message
+		std::cout << "Reply: " << answer << " " << len << " bytes " << std::endl
+				  << std::endl;
+		if (answer == "bye")
+		{
+			std::cout << "Exiting...\n"
+					  << std::endl;
+			shouldTerminate = true;
+
+			break;
+		}
+	}
 }
 
 int main(int argc, char *argv[])
 {
-	StompClient stompClient;  // Create an instance of StompClient
-    std::thread keyboardThread(std::bind(&StompClient::readFromKeyboard, &stompClient)); // Pass the instance
-    keyboardThread.join(); // Ensure that the thread finishes before the program exits
-    return 0;
+	if (argc < 3)
+	{
+		std::cerr << "Usage: " << argv[0] << " host port" << std::endl
+				  << std::endl;
+		return -1;
+	}
+	std::cout << "step 1" << std::endl;
+	std::string host = argv[1];
+	short port = atoi(argv[2]);
 
-	/*if (argc < 3)
-    {
-        std::cerr << "Usage: " << argv[0] << " host port" << std::endl
-                  << std::endl;
-        return -1;
-    }
-    std::string host = argv[1];
-    short port = atoi(argv[2]);*/
+	ConnectionHandler connectionHandler(host, port);
+	if (!connectionHandler.connect())
+	{
+		std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
+		return 1;
+	}
 
+	// initialize threads
+	std::thread keyboardThread(readFromKeyboard, std::ref(connectionHandler));
+	std::thread socketThread(readFromSocket, std::ref(connectionHandler));
 
-
-	
-
-    /*ConnectionHandler connectionHandler(host, port);
-    if (!connectionHandler.connect())
-    {
-        std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
-        return 1;
-    }
-
-    // initialize threads
-	StompClient stompClient(host, port);
-	
-	std::thread socketThread(&StompClient::readFromSocket, &stompClient, std::ref(connectionHandler));
-
-    // wait for threads to finish
-    keyboardThread.join();
-    socketThread.join();*/
-	
+	// wait for threads to finish
+	keyboardThread.join();
+	socketThread.join();
+	return 0;
 }
+/*
+int main(int argc, char *argv[])
+{
+	StompClient stompClient;															 // Create an instance of StompClient
+	std::thread keyboardThread(std::bind(&StompClient::readFromKeyboard, &stompClient)); // Pass the instance
+	keyboardThread.join();																 // Ensure that the thread finishes before the program exits
+	return 0;
+
+	if (argc < 3)
+	{
+		std::cerr << "Usage: " << argv[0] << " host port" << std::endl
+				  << std::endl;
+		return -1;
+	}
+	std::string host = argv[1];
+	short port = atoi(argv[2]);*/
+
+/*ConnectionHandler connectionHandler(host, port);
+if (!connectionHandler.connect())
+{
+	std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
+	return 1;
+}
+
+// initialize threads
+StompClient stompClient(host, port);
+
+std::thread socketThread(&StompClient::readFromSocket, &stompClient, std::ref(connectionHandler));
+
+// wait for threads to finish
+keyboardThread.join();
+socketThread.join();*/
+
+// read from keyboard
+/*
+void StompClient::readFromKeyboard()
+{
+	while (!shouldTerminate)
+	{
+		//std::cout << "in shouldTerminate" << std::endl;
+		const short bufsize = 1024;                     // maximal size of message
+		char buf[bufsize];                              // buffer array for the message
+		std::cin.getline(buf, bufsize);                 // read the message from the keyboard
+		std::string lineRead(buf);                      // convert the message to string
+		int len = lineRead.length();                    // get the length of the message
+		std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+		std::string command(lineRead); // get the command from the user
+		std::string host;
+		short port;
+		bool firstFrame(false);
+
+
+			else
+			{
+				std::cout << "must login first!" << std::endl;
+				continue;
+			}
+
+
+		ConnectionHandler connectionHandler(host, port);
+		if (!connectionHandler.connect())
+		{
+			std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
+		}
+		vector<string> currFrame = getFrame(command); // get the frame for the command
+		// if the message was not sent
+		if(connected)
+		{
+			for(int i = 0; i < currFrame.size(); i++)
+			{
+				if (!connectionHandler.sendLine(currFrame[i]))
+				{
+					std::cout << "Frame did not sent - fail\n"
+							<< std::endl;
+					std::cout << "Could not connect to server\n"
+							<< std::endl;
+					shouldTerminate = true; // terminate the program
+					break;
+				}
+			}
+		}
+
+
+		// if the message was sent
+		// connectionHandler.sendLine(line) appends '\n' to the message. Therefor we send len+1 bytes.
+		std::cout << "Sent " << len + 1 << " bytes to server" << std::endl;
+	}
+	*/

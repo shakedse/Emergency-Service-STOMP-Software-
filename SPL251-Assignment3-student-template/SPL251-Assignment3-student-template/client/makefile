@@ -27,8 +27,8 @@ bin/StompClient.o: src/StompClient.cpp
 bin/StompClient.exe: bin/StompClient.o bin/ConnectionHandler.o bin/event.o
 	g++ -o bin/StompClient bin/StompClient.o bin/ConnectionHandler.o bin/event.o $(LDFLAGS)
 
-run: bin/StompClient
-	./bin/StompClient 127.0.0.1 7777
+run: bin/StompESClient
+	./bin/StompESClient
 .PHONY: clean
 
 clean:
