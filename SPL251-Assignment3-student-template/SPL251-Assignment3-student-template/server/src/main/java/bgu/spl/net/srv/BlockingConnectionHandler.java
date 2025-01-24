@@ -32,6 +32,8 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
             in = new BufferedInputStream(sock.getInputStream());
             out = new BufferedOutputStream(sock.getOutputStream());
 
+            System.out.println("we are in connection handler");
+
             while (!protocol.shouldTerminate() && connected && (read = in.read()) >= 0) {
                 T nextMessage = encdec.decodeNextByte((byte) read);
                 if (nextMessage != null) {
@@ -42,8 +44,8 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
                     }
                 }
             }
-            close();
 
+            close();
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -51,6 +53,7 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
     @Override
     public void close() throws IOException {
+        System.out.println("the server connectionhandler is closed...");
         connected = false;
         sock.close();
     }

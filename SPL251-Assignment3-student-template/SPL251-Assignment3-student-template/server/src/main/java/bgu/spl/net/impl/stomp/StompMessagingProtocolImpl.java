@@ -134,7 +134,6 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
             if(headers.containsKey("receipt"))
                     ansHeaders.put("receipt-id:", headers.get("receipt"));
             connections.disconnect(connectionId);
-            shouldTerminate = true;
             return new StompFrame("RECEIPT", ansHeaders,"");
         }
         return null;

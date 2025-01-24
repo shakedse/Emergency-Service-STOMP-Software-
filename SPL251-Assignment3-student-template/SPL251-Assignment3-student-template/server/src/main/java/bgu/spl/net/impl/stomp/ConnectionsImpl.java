@@ -127,7 +127,6 @@ public class ConnectionsImpl <T> implements Connections<T>
             }
         }
         ConnectionMap.remove(connectionId);
-
     }
 
     public boolean subscribedTo(int connectionId, String topic)

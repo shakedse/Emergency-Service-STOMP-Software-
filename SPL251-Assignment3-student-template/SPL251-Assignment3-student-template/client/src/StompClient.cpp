@@ -148,7 +148,7 @@ std::vector<std::string> getFrame(string command)
 	// string currFrame="";
 	int firstSpaceIndex = command.find(' ');
 	string commandType = command.substr(0, firstSpaceIndex);
-		std::cout << "step 3" << std::endl;
+	std::cout << "step 3" << std::endl;
 
 	// login command
 	if (commandType == "login")
@@ -210,10 +210,7 @@ std::vector<std::string> getFrame(string command)
 			loginToPasscode[username] = password;
 			currSubscriptionId++;
 			connected = true; // after login the user is connected
-			std::cout << "CONNECT\n accept-version:1.2\n host:" + hostUser + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\n" + "\n\n" << std::endl;
-
-			Frame.push_back("CONNECT\n accept-version:1.2\n host:" + hostUser + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\n" + "\n\n");
-			return Frame;
+			Frame.push_back("CONNECT\naccept-version:1.2\nhost:" + hostUser + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\0");
 		}
 	}
 	// join command
@@ -228,8 +225,8 @@ std::vector<std::string> getFrame(string command)
 		int channelIndex = command.find(' ', firstSpaceIndex + 1);								// finding the channel index
 		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
 		cout << "channel sub:" << channel << endl;
-		std::cout << "SUBSCRIBE\n destination:" + channel + "\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\n\n"<< std::endl;
-		Frame.push_back("SUBSCRIBE\n destination:" + channel + "\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\n\n");
+		std::cout << "SUBSCRIBE\n destination:" + channel + "\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\0"<< std::endl;
+		Frame.push_back("SUBSCRIBE\n destination:" + channel + "\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\0");
 		currReceiptId++;
 	}
 
@@ -295,7 +292,6 @@ std::vector<std::string> getFrame(string command)
 		cout << "user name:" << userName << endl;
 		makeSummary(channel, userName, filePath);
 	}
-
 	// logout command
 	else if (commandType == "logout")
 	{
@@ -306,6 +302,7 @@ std::vector<std::string> getFrame(string command)
 		}
 		Frame.push_back("DISCONNECT\n receipt:1\n\n");
 	}
+	std::cout << "and size:" + Frame.size() << std::endl;
 	return Frame;
 }
 
@@ -325,14 +322,10 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 
 		// if the message was not sent
 		int index = 0;
-		std::cout << "in" + index << std::endl;
 		index++;
-		for (std::string command : commands)
-		{
-
-			std::cout << "in" + index << std::endl;
-
-			std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+		for (std::string command : commands){
+			std::cout << "step 5:" + command << std::endl;
+			//std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 			if (!connectionHandler.sendLine(command))
 			{
 				std::cerr << "Frame did not sent - fail\n"
@@ -344,7 +337,6 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 			}
 		}
 		index++;
-		std::cout << "in" + index << std::endl;
 
 		// if the message was sent
 		// connectionHandler.sendLine(line) appends '\n' to the message. Therefor we send len+1 bytes.
@@ -361,7 +353,7 @@ void readFromSocket(ConnectionHandler &connectionHandler)
 		// Get back an answer: by using the expected number of bytes (len bytes + newline delimiter)
 		// We could also use: connectionHandler.getline(answer) and then get the answer without the newline char at the end
 
-		std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+		//std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 		if (!connectionHandler.getLine(answer))			// get the message from the server
 		{												// if the message was not received
 			std::cout << "Disconnected. Exiting...\n"
