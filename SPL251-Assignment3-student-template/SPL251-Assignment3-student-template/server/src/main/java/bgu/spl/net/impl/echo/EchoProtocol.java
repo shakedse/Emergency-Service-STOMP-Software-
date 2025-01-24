@@ -1,6 +1,7 @@
 package bgu.spl.net.impl.echo;
 
 import bgu.spl.net.api.MessagingProtocol;
+import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 import java.time.LocalDateTime;
@@ -30,4 +31,17 @@ public class EchoProtocol implements MessagingProtocol<String> {
     public boolean shouldTerminate() {
         return shouldTerminate;
     }
+    EchoClient: bin/ConnectionHandler.o bin/echoClient.o
+	g++ -o bin/EchoClient bin/ConnectionHandler.o bin/echoClient.o $(LDFLAGS)
+
+StompWCIClient: bin/ConnectionHandler.o bin/StompClient.obin/event.o
+	g++ -o bin/StompWCIClient bin/ConnectionHandler.o bin/StompClient.o $(LDFLAGS)
+
+bin/echoClient.o: src/echoClient.cpp
+	g++ $(CFLAGS) -o bin/echoClient.o src/echoClient.cpp
+
+	
+
+bin/StompClient.exe: bin/StompClient.o bin/ConnectionHandler.o bin/event.o
+	g++ -o bin/StompClient bin/StompClient.o bin/ConnectionHandler.o bin/event.o $(LDFLAGS)
 }
