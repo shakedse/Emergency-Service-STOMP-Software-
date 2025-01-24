@@ -28,7 +28,7 @@ bin/StompClient.exe: bin/StompClient.o bin/ConnectionHandler.o bin/event.o
 	g++ -o bin/StompClient bin/StompClient.o bin/ConnectionHandler.o bin/event.o $(LDFLAGS)
 
 run: bin/StompClient
-	./bin/StompClient 127.0.0.1 9
+	./bin/StompClient 127.0.0.1 24
 .PHONY: clean
 
 clean:

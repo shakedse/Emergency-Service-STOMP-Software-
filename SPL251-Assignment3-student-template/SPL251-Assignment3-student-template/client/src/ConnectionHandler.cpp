@@ -52,7 +52,6 @@ bool ConnectionHandler::sendBytes(const char bytes[], int bytesToWrite) {
 	int tmp = 0;
 	boost::system::error_code error;
 	try {
-		std::cout << "step 6:" + bytesToWrite << std::endl;
 		while (!error && bytesToWrite > tmp) {
 			tmp += socket_.write_some(boost::asio::buffer(bytes + tmp, bytesToWrite - tmp), error);
 		}
@@ -70,7 +69,6 @@ bool ConnectionHandler::getLine(std::string &line) {
 }
 
 bool ConnectionHandler::sendLine(std::string &line) {
-	std::cout << "step 6:" + line << std::endl;
 	return sendFrameAscii(line, '\0');
 }
 

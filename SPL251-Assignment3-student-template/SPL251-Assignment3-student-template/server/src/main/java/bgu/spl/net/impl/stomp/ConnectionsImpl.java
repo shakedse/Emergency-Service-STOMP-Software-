@@ -114,7 +114,10 @@ public class ConnectionsImpl <T> implements Connections<T>
     {
         subIds.remove(connectionId);
         Idsubs.remove(connectionId);
-        LogedInUserToPassword.remove(IdtoUser.get(connectionId)); // need to log out disconnected users
+        System.out.println(connectionId);
+        System.out.println(IdtoUser.get(connectionId));
+        System.out.println(LogedInUserToPassword.remove(IdtoUser.get(connectionId)));
+        //LogedInUserToPassword.remove(IdtoUser.get(connectionId)); // need to log out disconnected users
         for(String topic: TopicsToId.keySet())
         {
             for(Integer id: TopicsToId.get(topic))
@@ -159,7 +162,7 @@ public class ConnectionsImpl <T> implements Connections<T>
             }
             else
             {
-                if(LogedInUserToPassword.get(user) != password) // old user, not loged in, wrong password
+                if(!UserToPassword.get(user).equals(password)) // old user, not loged in, wrong password
                 {
                     return "Wrong password";
                 }

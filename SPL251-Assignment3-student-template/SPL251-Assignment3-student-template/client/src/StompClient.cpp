@@ -155,7 +155,7 @@ std::vector<std::string> getFrame(string command)
 	{
 		if (connected)
 		{
-			cout << "”The client is already logged in" << endl;
+			cout << "The client is already logged in" << endl;
 			return {};
 		}
 		else
@@ -175,10 +175,10 @@ std::vector<std::string> getFrame(string command)
 			string hostUser = "stomp.cs.bgu.ac.il"; // host is always this?
 
 			string host = args[1].substr(0, args[1].find(':'));
-			std::cout << host << std::endl;
+			std::cout << host;
 
 			std::string portString = args[1].substr(args[1].find(':') + 1, args[1].size() - 1);
-			std::cout << portString << std::endl;
+			std::cout << portString;
 
 			try
 			{
@@ -195,21 +195,23 @@ std::vector<std::string> getFrame(string command)
 			}
 
 			std::string username = args[2];
-			std::cout << username << std::endl;
 
 			std::string password = args[3];
-			std::cout << password << std::endl;
 
 			// checking if the login name is already in the system
-			if (loginToPasscode.find(username) != loginToPasscode.end())
+			if (loginToPasscode[username] != "" && loginToPasscode[username] != password)
 			{
 				std::cout << "Wrong password" << std::endl;
 				// continue;
 			}
+			else
+			{
+				connected = true; // after login the user is connected
+			}
 			idAndInfo[currSubscriptionId] = {username, password};
 			loginToPasscode[username] = password;
 			currSubscriptionId++;
-			connected = true; // after login the user is connected
+
 			Frame.push_back("CONNECT\naccept-version:1.2\nhost:" + hostUser + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\0");
 		}
 	}
@@ -219,14 +221,14 @@ std::vector<std::string> getFrame(string command)
 		std::cout << "step 5" << std::endl;
 		if (!connected)
 		{
-			cout << "”The client is not logged in, log in before trying to join" << endl;
+			cout << "The client is not logged in, log in before trying to join" << endl;
 			return {};
 		}
 		int channelIndex = command.find(' ', firstSpaceIndex + 1);								// finding the channel index
 		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
 		cout << "channel sub:" << channel << endl;
-		std::cout << "SUBSCRIBE\n destination:" + channel + "\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\0"<< std::endl;
-		Frame.push_back("SUBSCRIBE\n destination:" + channel + "\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\0");
+		std::cout << "SUBSCRIBE\n destination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\0"<< std::endl;
+		Frame.push_back("SUBSCRIBE\n destination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\0");
 		currReceiptId++;
 	}
 
@@ -235,14 +237,14 @@ std::vector<std::string> getFrame(string command)
 	{
 		if (!connected)
 		{
-			cout << "”The client is not logged in, log in before trying to exit" << endl;
+			cout << "The client is not logged in, log in before trying to exit" << endl;
 			return {};
 		}
 		int channelIndex = command.find(" ", firstSpaceIndex + 1);								// finding the channel index
 		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
 		cout << "channel unsub:" << channel << endl;
 
-		Frame.push_back("UNSUBSCRIBE\n id:" + std::to_string(currSubscriptionId) + "\n receipt:" + std::to_string(currReceiptId) + "\n\n\n");
+		Frame.push_back("UNSUBSCRIBE\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\n\n");
 	}
 
 	// report command
@@ -250,7 +252,7 @@ std::vector<std::string> getFrame(string command)
 	{
 		if (!connected)
 		{
-			cout << "”The client is not logged in, log in before trying to report" << endl;
+			cout << "The client is not logged in, log in before trying to report" << endl;
 			return {};
 		}
 		int fileIndex = command.find(" ", firstSpaceIndex + 1);						   // finding the file index
@@ -259,7 +261,7 @@ std::vector<std::string> getFrame(string command)
 
 		for (Event event : parsedFile.events)
 		{
-			std::string currFrame = "SEND\n destination:/" + std::string(event.get_channel_name()) + "\n\n" +
+			std::string currFrame = "SEND\ndestination:/" + std::string(event.get_channel_name()) + "\n\n" +
 									"user:" + event.getEventOwnerUser() + "\n" +
 									"city:" + event.get_city() + "\n" +
 									"event name:" + event.get_name() + "\n" +
@@ -297,12 +299,16 @@ std::vector<std::string> getFrame(string command)
 	{
 		if (!connected)
 		{
-			cout << "”The client is not logged in, log in before trying to logout" << endl;
+			cout << "The client is not logged in, log in before trying to logout" << endl;
 			return {};
 		}
-		Frame.push_back("DISCONNECT\n receipt:1\n\n");
+		Frame.push_back("DISCONNECT\nreceipt:1\n\n");
+		connected = false;
 	}
-	std::cout << "and size:" + Frame.size() << std::endl;
+	else
+	{
+		cout << "please enter an existing commend" << endl;
+	}
 	return Frame;
 }
 

@@ -45,6 +45,11 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
                 }
             }
 
+            System.out.println("we are out connection handler because:");
+            if (protocol.shouldTerminate())  System.out.println("should ter");
+            else if (!connected)  System.out.println("not connected");
+            else System.out.println("read");
+
             close();
         } catch (IOException ex) {
             ex.printStackTrace();
