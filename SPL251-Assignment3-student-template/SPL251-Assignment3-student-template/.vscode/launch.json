@@ -1,82 +1,98 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "StompServer",
+      "request": "launch",
+      "mainClass": "bgu.spl.net.impl.stomp.StompServer",
+      "projectName": "server"
+    },
+    {
+      "type": "java",
+      "name": "Launch EchoServer",
+      "request": "launch",
+      "mainClass": "bgu.spl.net.impl.echo.EchoServer",
+      "projectName": "server",
+      "preLaunchTask": "mvn compile"
+    },
+    {
+      "name": "(gdb) Launch stomp client",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/client/bin/StompClient",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
         {
-            "type": "java",
-            "name": "StompServer",
-            "request": "launch",
-            "mainClass": "bgu.spl.net.impl.stomp.StompServer",
-            "projectName": "server"
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
         },
         {
-            "type": "java",
-            "name": "Launch EchoServer",
-            "request": "launch",
-            "mainClass": "bgu.spl.net.impl.echo.EchoServer",
-            "projectName": "server",
-            "preLaunchTask": "mvn compile"
-        },
-        {
-            "name": "(gdb) Launch stomp client",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/client/bin/StompClient",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${fileDirname}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ],
-            "preLaunchTask": "make StompWCIClient"
-        },
-        {
-            "name": "(gdb) Launch echo client",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/client/bin/EchoClient",
-            "args": [
-                "127.0.0.1",
-                "7777"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${fileDirname}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ],
-            "preLaunchTask": "make EchoClient"
-        },
-        {
-            "type": "java",
-            "name": "Launch Current File",
-            "request": "launch",
-            "mainClass": "${file}"
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
         }
-    ]
+      ],
+      "preLaunchTask": "make StompWCIClient"
+    },
+    {
+      "name": "(gdb) Launch echo client",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/client/bin/EchoClient",
+      "args": [
+        "127.0.0.1",
+        "7777"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "make EchoClient"
+    },
+    {
+      "type": "java",
+      "name": "Launch Current File",
+      "request": "launch",
+      "mainClass": "${file}"
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "cwd": "/workspaces/Assignment3/SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/client/src",
+      "program": "/workspaces/Assignment3/SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/client/src/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
 }

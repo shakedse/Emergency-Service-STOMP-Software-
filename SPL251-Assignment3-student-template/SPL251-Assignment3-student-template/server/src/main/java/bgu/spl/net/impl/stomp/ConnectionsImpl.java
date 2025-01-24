@@ -89,7 +89,7 @@ public class ConnectionsImpl <T> implements Connections<T>
 
         subIds.get(connectionId).remove(subscribeId);
         Idsubs.get(connectionId).remove(topic);
-        TopicsToId.get(topic).remove(connectionId);
+        //TopicsToId.get(topic).remove(connectionId);
         return true;
     }
 

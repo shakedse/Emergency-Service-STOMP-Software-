@@ -118,6 +118,7 @@ Event::Event(const std::string &frame_body): channel_name(""), city(""),
 
 names_and_events parseEventsFile(std::string json_path)
 {
+    std::cout << "6" << std::endl;
     std::ifstream f(json_path);
     json data = json::parse(f);
 

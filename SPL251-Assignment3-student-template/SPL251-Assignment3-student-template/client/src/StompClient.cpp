@@ -8,19 +8,19 @@ using namespace std;
 #include <map>
 #include <vector>
 #include <string>
-#include "../include/event.h" 
-
+#include "../include/event.h"
 
 bool connected = false;
 int currReceiptId;
 int currSubscriptionId;
 std::mutex consoleMutex;
-//thread keyboardThread;
-//thread socketThread;
-//map<int, string> receiptIdToCommand;			//receipt id and the frame
-map<string,string> loginToPasscode;				//login and passcode
-map<string, vector<Event>> userToReports;		//user and his reports
-map<int, vector<string>> idAndInfo;		
+// thread keyboardThread;
+// thread socketThread;
+// map<int, string> receiptIdToCommand;			//receipt id and the frame
+map<string, string> loginToPasscode;	  // login and passcode
+map<string, vector<Event>> userToReports; // user and his reports
+map<int, vector<string>> idAndInfo;
+std::string loginUser;
 /*
 // constructor
 StompClient::StompClient():
@@ -65,30 +65,31 @@ void makeSummary(string channel, string userName, string filePath)
 	if (userToReports.find(userName) == userToReports.end())
 	{
 		std::cout << "No reports for this user" << endl;
-		return;
 	}
 	std::ofstream file(filePath, std::ios::out);
 	if (!file.is_open())
 	{
 		std::cout << "Could not open the file" << endl;
-		return;
 	}
 	vector<Event> finalSummary = {};
 	vector<Event> relevantReports = {};
+	//vector<Event> vr = userToReports.find(userName)->second;
+
 
 	// initiating the statistics
 	int reportsNum = 0;
 	int activeEventsNum = 0;
 	int forceArrivalNum = 0;
 
+	std::cout << "2" << endl;
 	// going over all the reports of the user
-	for (Event &report : userToReports[userName])
+	for (Event &report : userToReports.find(userName)->second)
 	{
 		if (report.get_channel_name() == channel) // if the report is about the channel
 		{
 			relevantReports.push_back(report);
 			reportsNum++;
-			if (report.get_general_information().at("forces arrival at scene") == "true")
+			if (report.get_general_information().at("forces_arrival_at_scene") == "true")
 			{
 				forceArrivalNum++;
 			}
@@ -100,13 +101,14 @@ void makeSummary(string channel, string userName, string filePath)
 	}
 
 	// sorting the reports by the date time
-	std::sort(relevantReports.begin(), relevantReports.end(), [](const Event &a, const Event &b)
+	/*std::sort(relevantReports.begin(), relevantReports.end(), [](const Event &a, const Event &b)
 			  {
-	if (a.get_date_time() == b.get_date_time()) {
+		if (a.get_date_time() == b.get_date_time()) {
 		return a.get_name() < b.get_name();
 	}
-	return a.get_date_time() < b.get_date_time(); });
 
+	return a.get_date_time() < b.get_date_time(); });
+*/
 	// the beginning of the summary
 	file << "Channel " << channel << "\n";
 	file << "Stats:\n";
@@ -139,30 +141,28 @@ void makeSummary(string channel, string userName, string filePath)
 	cout << "Summary has been written to the file" << filePath << endl;
 }
 
-
-
 // creating a frame for each user's command
 std::vector<std::string> getFrame(string command)
 {
 	vector<string> Frame;
 	// string currFrame="";
 	int firstSpaceIndex = command.find(' ');
-	string commandType = command.substr(0, firstSpaceIndex);
-	std::cout << "step 3" << std::endl;
+	if (firstSpaceIndex > 7)
+	{
+		cout << "please enter a command" << endl;
+		return {};
+	}
 
+	string commandType = command.substr(0, firstSpaceIndex);
 	// login command
 	if (commandType == "login")
 	{
 		if (connected)
 		{
 			cout << "The client is already logged in" << endl;
-			return {};
 		}
 		else
 		{
-			std::cout << "step 4" << std::endl;
-			int firstSpaceIndex = command.find(' ');
-			string commandType = command.substr(0, firstSpaceIndex);
 			std::string arg;
 			std::stringstream ss(command);
 			std::vector<std::string> args;
@@ -172,14 +172,24 @@ std::vector<std::string> getFrame(string command)
 			{
 				args.push_back(arg); // Add each arg to the vector
 			}
-			string hostUser = "stomp.cs.bgu.ac.il"; // host is always this?
+			if (args.size() != 4)
+			{
+				std::cout << "login command needs 3 args: {host:port} {username} {password}" << std::endl;
+			}
+
+			string hostUser = "stomp.cs.bgu.ac.il";
+
+			if (args[1].find(':') == string::npos)
+			{
+				std::cout << "Invalid host:port" << std::endl;
+			}
 
 			string host = args[1].substr(0, args[1].find(':'));
-			std::cout << host;
+			// std::cout << host;
 
-			std::string portString = args[1].substr(args[1].find(':') + 1, args[1].size() - 1);
-			std::cout << portString;
-
+			// std::string portString = args[1].substr(args[1].find(':') + 1, args[1].size() - 1);
+			// std::cout << portString;
+			/*
 			try
 			{
 				int tempPort = std::stoi(portString);	   // Convert string to int
@@ -193,9 +203,10 @@ std::vector<std::string> getFrame(string command)
 			{
 				std::cerr << "Out of range: " << e.what() << std::endl;
 			}
+			*/
 
 			std::string username = args[2];
-
+			loginUser = username;
 			std::string password = args[3];
 
 			// checking if the login name is already in the system
@@ -218,83 +229,147 @@ std::vector<std::string> getFrame(string command)
 	// join command
 	else if (commandType == "join") // subscribing to a channel
 	{
-		std::cout << "step 5" << std::endl;
+		std::vector<std::string> args;
 		if (!connected)
 		{
 			cout << "The client is not logged in, log in before trying to join" << endl;
-			return {};
 		}
-		int channelIndex = command.find(' ', firstSpaceIndex + 1);								// finding the channel index
-		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
-		cout << "channel sub:" << channel << endl;
-		std::cout << "SUBSCRIBE\n destination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\0"<< std::endl;
-		Frame.push_back("SUBSCRIBE\n destination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\0");
-		currReceiptId++;
-	}
+		else
+		{
+			std::string arg;
+			std::stringstream ss(command);
 
+			// Split the string by space
+			while (ss >> arg)
+			{
+				args.push_back(arg); // Add each arg to the vector
+			}
+			if (args.size() != 2)
+			{
+				std::cout << "join command needs 1 args: {channel}" << std::endl;
+			}
+			else
+			{
+				// getting the channel
+				cout << "channel sub:" << args[1] << endl;
+				std::cout << "SUBSCRIBE\n destination:" + args[1] + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\0" << std::endl;
+				Frame.push_back("SUBSCRIBE\n destination:" + args[1] + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\0");
+				currReceiptId++;
+			}
+		}
+	}
 	// exit command
 	else if (commandType == "exit")
 	{
+		std::vector<std::string> args;
 		if (!connected)
 		{
 			cout << "The client is not logged in, log in before trying to exit" << endl;
-			return {};
 		}
-		int channelIndex = command.find(" ", firstSpaceIndex + 1);								// finding the channel index
-		string channel = command.substr(channelIndex + 1, command.length() - channelIndex - 1); // getting the channel
-		cout << "channel unsub:" << channel << endl;
-
-		Frame.push_back("UNSUBSCRIBE\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\n\n");
+		else
+		{
+			std::string arg;
+			std::stringstream ss(command);
+			// Split the string by space
+			while (ss >> arg)
+			{
+				args.push_back(arg); // Add each arg to the vector
+			}
+			if (args.size() != 2)
+			{
+				std::cout << "exit command needs 1 args: {channel}" << std::endl;
+			}
+			else
+			{
+				// getting the channel
+				string channel = args[1]; // getting the channel
+				std::cout << "channel unsub:" << channel << std::endl;
+				Frame.push_back("UNSUBSCRIBE\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\n\n");
+			}
+		}
 	}
-
 	// report command
 	else if (commandType == "report")
 	{
+		std::vector<std::string> args;
 		if (!connected)
 		{
 			cout << "The client is not logged in, log in before trying to report" << endl;
-			return {};
 		}
-		int fileIndex = command.find(" ", firstSpaceIndex + 1);						   // finding the file index
-		string file = command.substr(fileIndex + 1, command.length() - fileIndex - 1); // getting the file
-		names_and_events parsedFile = parseEventsFile(file);						   // parsing the file
-
-		for (Event event : parsedFile.events)
+		else
 		{
-			std::string currFrame = "SEND\ndestination:/" + std::string(event.get_channel_name()) + "\n\n" +
-									"user:" + event.getEventOwnerUser() + "\n" +
-									"city:" + event.get_city() + "\n" +
-									"event name:" + event.get_name() + "\n" +
-									"date time:" + to_string(event.get_date_time()) + "\n" +
-									"general information:" + "\n" +
-									"    active:" + event.get_general_information().at("active") + "\n" +
-									"    forces arrival at scene:" + event.get_general_information().at("forces arrival at scene") + "\n" +
-									"description:" + event.get_description() + "\n" + event.get_description() + "\n\n" + "\0";
+			std::string arg;
+			std::stringstream ss(command);
+			// Split the string by space
+			while (ss >> arg)
+			{
+				args.push_back(arg); // Add each arg to the vector
+			}
+			if (args.size() != 2)
+			{
+				std::cout << "report command needs 1 args: {channel}" << std::endl;
+			}
+			else
+			{
+			}
+			// mvn exec:java -Dexec.mainClass="bgu.spl.net.impl.stomp.StompServer" -Dexec.args="110 tpc"
 
-			userToReports[event.getEventOwnerUser()].push_back(currFrame);
-			Frame.push_back(currFrame);
+			string file = args[1];								 // getting the file
+			names_and_events parsedFile = parseEventsFile(file); // parsing the file
+			for (const Event &event : parsedFile.events)
+			{
+				std::ostringstream oss;
+				oss << "SEND\n"
+					<< "destination:/" << event.get_channel_name() << "\n\n"
+					<< "user:" << loginUser << "\n"
+					<< "city:" << event.get_city() << "\n"
+					<< "event name:" << event.get_name() << "\n"
+					<< "date time:" << std::to_string(event.get_date_time()) << "\n"
+					<< "general information:\n"
+					<< "    active:" << event.get_general_information().at("active") << "\n"
+					<< "    forces arrival at scene:" << event.get_general_information().at("forces_arrival_at_scene") << "\n"
+					<< "description:" << event.get_description() << "\n";
+				std::string currFrame = oss.str();
+				std::cout << currFrame << std::endl;
+				userToReports[loginUser].push_back(event);
+				Frame.push_back(currFrame);
+			}
 		}
 	}
-
 	// summary command
 	else if (commandType == "summary")
 	{
+		std::vector<std::string> args;
 		if (!connected)
 		{
 			cout << "”The client is not logged in, log in before trying to summary" << endl;
-			return {};
 		}
-		int channelIndex = 9;									 // summary+" "
-		int usernameIndex = command.find(" ", channelIndex + 1); // finding the index after the summary
-		int fileIndex = command.find(" ", usernameIndex + 1);	 // finding the index after the username
+		else
+		{
+			std::string arg;
+			std::stringstream ss(command);
+			// Split the string by space
+			while (ss >> arg)
+			{
+				args.push_back(arg); // Add each arg to the vector
+			}
+			std::cout << "size:" + args.size() << std::endl;
+			if (args.size() != 4)
+			{
+				std::cout << "summary command needs 4 args: {channel} {username} {filepath}" << std::endl;
+			}
+			else
+			{
+			}
 
-		string channel = command.substr(channelIndex, usernameIndex - channelIndex - 1);	// getting the channel
-		string userName = command.substr(usernameIndex + 1, fileIndex - usernameIndex - 1); // getting the user name
-		string filePath = command.substr(fileIndex + 1, command.length() - fileIndex - 1);	// getting the file path
-		cout << "user name:" << userName << endl;
-		makeSummary(channel, userName, filePath);
+			string channel = args[1];  // getting the channel
+			string userName = args[2]; // getting the user name
+			string filePath = args[3]; // getting the file path
+			std::cout << "1" << std::endl;
+			makeSummary(channel, userName, filePath);
+		}
+		// logout command
 	}
-	// logout command
 	else if (commandType == "logout")
 	{
 		if (!connected)
@@ -329,9 +404,10 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 		// if the message was not sent
 		int index = 0;
 		index++;
-		for (std::string command : commands){
+		for (std::string command : commands)
+		{
 			std::cout << "step 5:" + command << std::endl;
-			//std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+			std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 			if (!connectionHandler.sendLine(command))
 			{
 				std::cerr << "Frame did not sent - fail\n"
@@ -359,9 +435,9 @@ void readFromSocket(ConnectionHandler &connectionHandler)
 		// Get back an answer: by using the expected number of bytes (len bytes + newline delimiter)
 		// We could also use: connectionHandler.getline(answer) and then get the answer without the newline char at the end
 
-		//std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
-		if (!connectionHandler.getLine(answer))			// get the message from the server
-		{												// if the message was not received
+		// std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+		if (!connectionHandler.getLine(answer)) // get the message from the server
+		{										// if the message was not received
 			std::cout << "Disconnected. Exiting...\n"
 					  << std::endl;
 			shouldTerminate = true;

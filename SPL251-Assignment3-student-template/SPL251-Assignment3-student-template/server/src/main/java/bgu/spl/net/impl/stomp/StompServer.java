@@ -12,7 +12,6 @@ public class StompServer {
 
     public static void main(String[] args) {
 
-
         if(args.length < 2)
         {
             System.out.println("Usage: StompServer <port>");

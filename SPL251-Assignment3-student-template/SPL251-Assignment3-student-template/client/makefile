@@ -16,8 +16,9 @@ bin/event.o: src/event.cpp
 	g++ $(CFLAGS) -o bin/event.o src/event.cpp
 
 run: bin/StompClient
-	./bin/StompClient 127.0.0.1 7777
+	./bin/StompClient 127.0.0.1 110
 .PHONY: clean
+
 
 clean:
 	rm -f bin/*
