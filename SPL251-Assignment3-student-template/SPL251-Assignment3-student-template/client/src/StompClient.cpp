@@ -222,7 +222,6 @@ std::vector<std::string> getFrame(string command)
 			idAndInfo[currSubscriptionId] = {username, password};
 			loginToPasscode[username] = password;
 			currSubscriptionId++;
-
 			Frame.push_back("CONNECT\naccept-version:1.2\nhost:" + hostUser + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\0");
 		}
 	}
@@ -375,10 +374,11 @@ std::vector<std::string> getFrame(string command)
 		if (!connected)
 		{
 			cout << "The client is not logged in, log in before trying to logout" << endl;
-			return {};
 		}
-		Frame.push_back("DISCONNECT\nreceipt:1\n\n");
+		std::string sum = "DISCONNECT\nreceipt:" + std::to_string(currReceiptId) + "\n\n";
+		Frame.push_back(sum);
 		connected = false;
+		loginUser = "";
 	}
 	else
 	{
@@ -389,7 +389,6 @@ std::vector<std::string> getFrame(string command)
 
 void readFromKeyboard(ConnectionHandler &connectionHandler)
 {
-	std::cout << "step 2" << std::endl;
 	// From here we will see the rest of the ehco client implementation:
 	while (!shouldTerminate)
 	{
@@ -406,7 +405,6 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 		index++;
 		for (std::string command : commands)
 		{
-			std::cout << "step 5:" + command << std::endl;
 			std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 			if (!connectionHandler.sendLine(command))
 			{
