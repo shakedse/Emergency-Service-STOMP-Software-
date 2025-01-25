@@ -115,3 +115,11 @@ string ConnectionHandler::getHost() const {
 short ConnectionHandler::getPort() const {
 	return port_;
 }
+
+void ConnectionHandler::setHost(std::string host) {
+	host_ = host;
+}
+
+void ConnectionHandler::setPort(short port) {
+	port_ = port;
+}

@@ -89,7 +89,8 @@ public class ConnectionsImpl <T> implements Connections<T>
 
         subIds.get(connectionId).remove(subscribeId);
         Idsubs.get(connectionId).remove(topic);
-        //TopicsToId.get(topic).remove(connectionId);
+        int toRemoveIndex = TopicsToId.get(topic).indexOf(connectionId);
+        TopicsToId.get(topic).remove(toRemoveIndex);
         return true;
     }
 
@@ -114,9 +115,6 @@ public class ConnectionsImpl <T> implements Connections<T>
     {
         subIds.remove(connectionId);
         Idsubs.remove(connectionId);
-        System.out.println(connectionId);
-        System.out.println(IdtoUser.get(connectionId));
-        System.out.println(LogedInUserToPassword.remove(IdtoUser.get(connectionId)));
         //LogedInUserToPassword.remove(IdtoUser.get(connectionId)); // need to log out disconnected users
         for(String topic: TopicsToId.keySet())
         {
