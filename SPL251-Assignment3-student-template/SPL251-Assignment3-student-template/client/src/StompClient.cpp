@@ -202,6 +202,7 @@ int main(int argc, char *argv[])
 		// wait for threads to finish
 		keyboardThread.join();
 		socketThread.join();
+		delete stompProtocol;
 	}
 	return 0;
 }
