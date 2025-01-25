@@ -11,42 +11,18 @@ using namespace std;
 #include "../include/event.h"
 
 bool connected = false;
+bool waitingToDisconnect = false;
+bool logedIn = false;
 int currReceiptId;
 int currSubscriptionId;
 std::mutex consoleMutex;
-// thread keyboardThread;
-// thread socketThread;
 map<string, int> receiptIdToCommand;			//receipt id and the frame
 map<string, string> loginToPasscode;	  // login and passcode
 map<string, vector<Event>> userToReports; // user and his reports
 map<int, vector<string>> idAndInfo;
 std::string loginUser;
-/*
-// constructor
-StompClient::StompClient():
-	shouldTerminate(false),
-	connected(false),
-	currReceiptId(0),
-	currSubscriptionId(0),
-	receiptIdToCommand(),
-	loginToPasscode(),
-	userToReports(),
-	idAndInfo()
-{}
-*/
-/*
-void StompClient::start()
-{
-	if(!connectionHandler.connect())
-	{
-		std::cerr << "Cannot connect to server: " << connectionHandler.getHost() << ":" << connectionHandler.getPort() << std::endl;
-		return;
-	}
-	cout << "Connected to server: host - " << connectionHandler.getHost() << "port -" << connectionHandler.getPort() << endl;
-	//keyboardThread = std::thread([this]);
-	//socketThread = std
-}
-*/
+
+
 
 // converting the epoch time to date
 std::string epochToDate(int epochTime)
@@ -80,8 +56,6 @@ void makeSummary(string channel, string userName, string filePath)
 	int reportsNum = 0;
 	int activeEventsNum = 0;
 	int forceArrivalNum = 0;
-
-	std::cout << "2" << endl;
 	// going over all the reports of the user
 	for (Event &report : userToReports.find(userName)->second)
 	{
@@ -156,87 +130,7 @@ std::vector<std::string> getFrame(string command, ConnectionHandler &connectionH
 	// login command
 	if (commandType == "login")
 	{
-		if (connected)
-		{
-			cout << "The client is already logged in" << endl;
-		}
-		else
-		{
-			std::string arg;
-			std::stringstream ss(command);
-			std::vector<std::string> args;
-			short port = 0;
-
-			// Split the string by space
-			while (ss >> arg)
-			{
-				args.push_back(arg); // Add each arg to the vector
-			}
-
-			if (args.size() != 4)
-			{
-				std::cout << "login command needs 3 args: {host:port} {username} {password}" << std::endl;
-				return Frame;
-			}
-
-			string hostUser = "stomp.cs.bgu.ac.il";
-
-			if (args[1].find(':') == string::npos)
-			{
-				std::cout << "Invalid host:port" << std::endl;
-				return Frame;
-			}
-
-			string host = args[1].substr(0, args[1].find(':'));
-			std::cout << host;
-
-			std::string portString = args[1].substr(args[1].find(':') + 1, args[1].size() - 1);
-			std::cout << portString;
-			
-			try
-			{
-				int tempPort = std::stoi(portString);	   // Convert string to int
-				port = static_cast<short>(tempPort); // Cast to short
-			}
-			catch (const std::invalid_argument &e)
-			{
-				std::cerr << "Invalid argument: " << e.what() << std::endl;
-				return Frame;
-			}
-			catch (const std::out_of_range &e)
-			{
-				std::cerr << "Out of range: " << e.what() << std::endl;
-				return Frame;
-			}
-
-			std::string username = args[2];
-			loginUser = username;
-			std::string password = args[3];
-
-			// checking if the login name is already in the system
-			if (loginToPasscode[username] != "" && loginToPasscode[username] != password)
-			{
-				std::cout << "Wrong password" << std::endl;
-				return Frame;
-			}
-			else
-			{
-				connectionHandler.setHost(host);
-				connectionHandler.setPort(port);
-				if (!connectionHandler.connect())
-				{
-					std::cerr << "Cannot connect to " << host << ":" << std::endl;
-					return Frame;
-				}
-				else
-				{
-					connected = true; // after login the user is connected
-					idAndInfo[currSubscriptionId] = {username, password};
-					loginToPasscode[username] = password;
-					Frame.push_back("CONNECT\naccept-version:1.2\nhost:" + host + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\0");
-				}
-			}
-		}
+		cout << "The client is already logged in" << endl;
 	}
 	// join command
 	else if (commandType == "join") // subscribing to a channel
@@ -265,7 +159,6 @@ std::vector<std::string> getFrame(string command, ConnectionHandler &connectionH
 				// getting the channel
 				string channel = args[1];
 				cout << "channel sub:" << channel << endl;
-				std::cout << "SUBSCRIBE\n destination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\0" << std::endl;
 				Frame.push_back("SUBSCRIBE\n destination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\0");
 				receiptIdToCommand[channel] = currSubscriptionId;
 				currReceiptId++;
@@ -300,6 +193,7 @@ std::vector<std::string> getFrame(string command, ConnectionHandler &connectionH
 				string channel = args[1]; // getting the channel
 				std::cout << "channel unsub:" << channel << std::endl;
 				Frame.push_back("UNSUBSCRIBE\nid:" + std::to_string(receiptIdToCommand[channel]) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\n" + "\0");
+				currReceiptId++;
 			}
 		}
 	}
@@ -342,7 +236,6 @@ std::vector<std::string> getFrame(string command, ConnectionHandler &connectionH
 						<< "    forces arrival at scene:" << event.get_general_information().at("forces_arrival_at_scene") << "\n"
 						<< "description:" << event.get_description() << "\n";
 					std::string currFrame = oss.str();
-					std::cout << currFrame << std::endl;
 					userToReports[loginUser].push_back(event);
 					Frame.push_back(currFrame);
 				}
@@ -373,13 +266,11 @@ std::vector<std::string> getFrame(string command, ConnectionHandler &connectionH
 			}
 			else
 			{
+				string channel = args[1];  // getting the channel
+				string userName = args[2]; // getting the user name
+				string filePath = args[3]; // getting the file path
+				makeSummary(channel, userName, filePath);
 			}
-
-			string channel = args[1];  // getting the channel
-			string userName = args[2]; // getting the user name
-			string filePath = args[3]; // getting the file path
-			std::cout << "1" << std::endl;
-			makeSummary(channel, userName, filePath);
 		}
 		// logout command
 	}
@@ -389,10 +280,11 @@ std::vector<std::string> getFrame(string command, ConnectionHandler &connectionH
 		{
 			cout << "The client is not logged in, log in before trying to logout" << endl;
 		}
-		std::string sum = "DISCONNECT\nreceipt:" + std::to_string(currReceiptId) + "\n\n";
+		std::string sum = "DISCONNECT\nreceipt:" + std::to_string(currReceiptId) + "\n\n\0";
 		Frame.push_back(sum);
-		connected = false;
 		loginUser = "";
+		waitingToDisconnect = true;
+		connected = false;
 	}
 	else
 	{
@@ -403,20 +295,20 @@ std::vector<std::string> getFrame(string command, ConnectionHandler &connectionH
 
 void readFromKeyboard(ConnectionHandler &connectionHandler)
 {
-	// From here we will see the rest of the ehco client implementation:
-	while (!shouldTerminate)
+	while (connected)
 	{
-
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		const short bufsize = 1024;								// maximal size of message
 		char buf[bufsize];										// buffer array for the message
-		std::cin.getline(buf, bufsize);							// read the message from the keyboard
+		if(connected)
+			std::cin.getline(buf, bufsize);						// read the message from the keyboard
+		else
+			break;
 		std::string lineRead(buf);								// convert the message to string
 		int len = lineRead.length();							// get the length of the message
 		std::vector<std::string> commands = getFrame(lineRead, connectionHandler); // get the command from the user
 
 		// if the message was not sent
-		int index = 0;
-		index++;
 		for (std::string command : commands)
 		{
 			std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
@@ -430,11 +322,6 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 				break;
 			}
 		}
-		index++;
-
-		// if the message was sent
-		// connectionHandler.sendLine(line) appends '\n' to the message. Therefor we send len+1 bytes.
-		std::cout << "Sent " << len + 1 << " bytes to server" << std::endl;
 	}
 }
 
@@ -447,7 +334,7 @@ void readFromSocket(ConnectionHandler &connectionHandler)
 		// Get back an answer: by using the expected number of bytes (len bytes + newline delimiter)
 		// We could also use: connectionHandler.getline(answer) and then get the answer without the newline char at the end
 
-		// std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+		//std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 		if (!connectionHandler.getLine(answer)) // get the message from the server
 		{										// if the message was not received
 			std::cout << "Disconnected. Exiting...\n"
@@ -463,47 +350,201 @@ void readFromSocket(ConnectionHandler &connectionHandler)
 		// we filled up to the \n char - we must make sure now that a 0 char is also present. So we truncate last character.
 
 		answer.resize(len - 1); // remove the '\n' character from the message
-		std::cout << "Reply: " << answer << " " << len << " bytes " << std::endl;
 
 		std::string command = answer.substr(0, answer.find("\n"));
-		std::cout << command << std::endl;
-
-		if(command == "ERROR") // disconnecting in case of error
-			connected = false;
-
-		if (answer == "bye")
+		
+		if(waitingToDisconnect && command == "RECEIPT")
 		{
-			std::cout << "Exiting...\n"
-					  << std::endl;
-			shouldTerminate = true;
-
-			break;
+			const std::string key = "receipt-id:";
+			size_t startPos = answer.find(key) + 11;
+			size_t endPos = answer.find_first_not_of("0123456789", startPos);
+			int receiptId = std::stoi(answer.substr(startPos, endPos));
+			if(receiptId == currReceiptId)
+			{
+				std::cout << "we logout" << std::endl;
+				connected = false;
+				waitingToDisconnect = false;
+				connectionHandler.close();
+			}
 		}
+		
+		if(command == "ERROR") // disconnecting in case of error
+		{
+			connected = false;
+			connectionHandler.close();
+		} 
 	}
 }
 
-int main(int argc, char *argv[])
+const std::vector<std::string> logIn()
 {
-	/*if (argc < 3)
+	while (!connected)
 	{
-		std::cerr << "Usage: " << argv[0] << " host port" << std::endl
-				  << std::endl;
-		return -1;
+		std::cout << "please log in:" << std::endl;
+		const short bufsize = 1024;								// maximal size of message
+		char buf[bufsize];										// buffer array for the message
+		std::cin.getline(buf, bufsize);							// read the message from the keyboard
+		std::string lineRead(buf);								// convert the message to string
+		int len = lineRead.length();							// get the length of the message
+		int firstSpaceIndex = lineRead.find(' ');
+		if (firstSpaceIndex > 7)
+		{
+			cout << "please enter a command" << endl;
+			continue;
+		}
+		string commandType = lineRead.substr(0, firstSpaceIndex);
+		
+		// login command
+		if (commandType == "login")
+		{
+			if (connected)
+			{
+				cout << "The client is already logged in" << endl;
+				return {};
+			}
+			else
+			{
+				std::string arg;
+				std::stringstream ss(lineRead);
+				std::vector<std::string> args;
+				short port = 0;
+
+				// Split the string by space
+				while (ss >> arg)
+				{
+					args.push_back(arg); // Add each arg to the vector
+				}
+
+				if (args.size() != 4)
+				{
+					std::cout << "login command needs 3 args: {host:port} {username} {password}" << std::endl;
+					continue;
+				}
+
+				string hostUser = "stomp.cs.bgu.ac.il";
+
+				if (args[1].find(':') == string::npos)
+				{
+					std::cout << "Invalid host:port" << std::endl;
+					continue;
+				}
+				return args;
+			}
+		}
+		else
+		{
+			std::cout << "please login first" << std::endl;
+		}
 	}
-	std::cout << "step 1" << std::endl;
-	std::string host = argv[1];
-	short port = atoi(argv[2]);*/
+	return {};
+}
 
-	std::cerr << " host port" << std::endl;
-	
-	ConnectionHandler connectionHandler("0", 0);
+int main(int argc, char *argv[])
+{	
+	string host;
+	short port;
+	std::string username;
+	std::string password;
+	ConnectionHandler connectionHandler(host, port);
+	while(true)
+	{
+		while(!connected)
+		{
+			std::vector<std::string> args = logIn();
 
-	// initialize threads
-	std::thread keyboardThread(readFromKeyboard, std::ref(connectionHandler));
-	std::thread socketThread(readFromSocket, std::ref(connectionHandler));
+			std::string hostPort = args[1];
+			host = hostPort.substr(0, hostPort.find(':'));
+			std::string portString = hostPort.substr(hostPort.find(':') + 1, hostPort.size() - 1);
 
-	// wait for threads to finish
-	keyboardThread.join();
-	socketThread.join();
+			try
+			{
+				int tempPort = std::stoi(portString);	   // Convert string to int
+				port = static_cast<short>(tempPort); // Cast to short
+			}
+			catch (const std::invalid_argument &e)
+			{
+				std::cerr << "Invalid argument: " << e.what() << std::endl;
+				break;
+			}
+			catch (const std::out_of_range &e)
+			{
+				std::cerr << "Out of range: " << e.what() << std::endl;
+				break;
+			}
+
+			username = args[2];
+			loginUser = username;
+			password = args[3];
+
+			// checking if the login name is already in the system
+			if (loginToPasscode[username] != "" && loginToPasscode[username] != password)
+			{
+				std::cout << "Wrong password" << std::endl;
+				break;
+			}
+			connectionHandler.setHost(host);
+			connectionHandler.setPort(port);
+			if (!connectionHandler.connect())
+			{
+				std::cerr << "Cannot connect to " << host << ":" << std::endl;
+				connectionHandler.close();
+				continue;
+			}
+			else
+			{
+				//connected = true; // after login the user is connected
+				idAndInfo[currSubscriptionId] = {username, password};
+				loginToPasscode[username] = password;
+				std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+				string frame = "CONNECT\naccept-version:1.2\nhost:" + host + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\0";
+				if (!connectionHandler.sendLine(frame))
+				{
+					std::cerr << "Frame did not sent - fail\n"
+							<< std::endl;
+					std::cerr << "Could not connect to server\n"
+							<< std::endl;
+					shouldTerminate = true; // terminate the program
+					break;
+				}
+
+				string answer;
+				if (!connectionHandler.getLine(answer)) // get the message from the server
+				{										// if the message was not received
+					std::cout << "Disconnected. Exiting...\n"
+							<< std::endl;
+					shouldTerminate = true;
+					break;
+				}
+
+				int len = answer.length(); // get the length of the message
+
+				// A C string must end with a 0 char delimiter.  When we filled the answer buffer from the socket
+				// we filled up to the \n char - we must make sure now that a 0 char is also present. So we truncate last character.
+
+				answer.resize(len - 1); // remove the '\n' character from the message
+
+				std::string command = answer.substr(0, answer.find("\n"));
+				std::cout << "this is the command in login: " + command << std::endl;
+
+				if(command == "CONNECTED")
+				{
+					connected = true;
+				}
+				else
+				{
+					connected = false;
+					connectionHandler.close();
+				}
+			}
+		}
+
+		// initialize threads
+		std::thread keyboardThread(readFromKeyboard, std::ref(connectionHandler));
+		std::thread socketThread(readFromSocket, std::ref(connectionHandler));
+		// wait for threads to finish
+		keyboardThread.join();
+		socketThread.join();
+
+	}
 	return 0;
 }

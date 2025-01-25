@@ -2,6 +2,9 @@ package bgu.spl.net.srv;
 
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.MessagingProtocol;
+import bgu.spl.net.impl.stomp.ConnectionsImpl.ConnectionsHolder;
+import bgu.spl.net.impl.stomp.IdGenarator;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.ClosedSelectorException;
@@ -100,6 +103,9 @@ public class Reactor<T> implements Server<T> {
                 protocolFactory.get(),
                 clientChan,
                 this);
+        int clientID = IdGenarator.getInstance().GenNewId();
+        ConnectionsHolder.getInstance().connect(clientID, handler);
+        handler.Start(clientID);
         clientChan.register(selector, SelectionKey.OP_READ, handler);
     }
 

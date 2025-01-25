@@ -54,6 +54,16 @@ public class ConnectionsImpl <T> implements Connections<T>
         return true;
     }
 
+    public Boolean connect(int connectionId, NonBlockingConnectionHandler connectionHandler)
+    {
+        if(ConnectionMap.get(connectionId) != null)
+            return false;
+        ConnectionMap.put(connectionId, connectionHandler);    
+        subIds.put(connectionId, new ConcurrentHashMap<Integer,String>());
+        Idsubs.put(connectionId, new ConcurrentHashMap<String,Integer>());
+        return true;
+    }
+
     public Boolean logIn(int connectionId)
     {
         return true; // TO DO
@@ -115,7 +125,7 @@ public class ConnectionsImpl <T> implements Connections<T>
     {
         subIds.remove(connectionId);
         Idsubs.remove(connectionId);
-        //LogedInUserToPassword.remove(IdtoUser.get(connectionId)); // need to log out disconnected users
+        LogedInUserToPassword.remove(IdtoUser.get(connectionId)); // need to log out disconnected users
         for(String topic: TopicsToId.keySet())
         {
             for(Integer id: TopicsToId.get(topic))
@@ -167,6 +177,7 @@ public class ConnectionsImpl <T> implements Connections<T>
                 else // old user, loged out, right password
                 {
                     LogedInUserToPassword.put(user, password); // adding to loged in
+                    IdtoUser.put(connectionId, user);
                     return "Login successful";
                 }
             }

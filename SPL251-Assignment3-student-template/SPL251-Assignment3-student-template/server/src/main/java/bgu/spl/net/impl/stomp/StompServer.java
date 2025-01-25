@@ -30,9 +30,16 @@ public class StompServer {
             Server<StompFrame> server = Server.threadPerClient(port, protocolSupplier, encoderDecoderSupplier);
             server.serve();        
         }
-        if(type == "reactor")
+        if(type.equals("reactor"))
         {
+            Supplier<MessagingProtocol<StompFrame>> protocolSupplier = StompMessagingProtocolImpl::new;
 
+            // Create a Supplier for MessageEncoderDecoder
+            Supplier<MessageEncoderDecoder<StompFrame>> encoderDecoderSupplier = MessageEncoderDecoderImpl::new;
+
+            // Start the server
+            Server<StompFrame> server = Server.reactor(10, port, protocolSupplier, encoderDecoderSupplier);
+            server.serve(); 
         }
     }
 }
