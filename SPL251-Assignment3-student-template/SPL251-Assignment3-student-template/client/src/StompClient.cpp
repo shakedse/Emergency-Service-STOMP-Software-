@@ -31,7 +31,7 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 		std::vector<std::string> commands = stompProtocol->getFrame(lineRead, connectionHandler); // get the command from the user
 
 		// if the message was not sent
-		//std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+		std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 
 		for (std::string command : commands)
 		{
@@ -208,6 +208,7 @@ int main(int argc, char *argv[])
 		// wait for threads to finish
 		keyboardThread.join();
 		socketThread.join();
+
 		delete stompProtocol;
 	}
 	return 0;

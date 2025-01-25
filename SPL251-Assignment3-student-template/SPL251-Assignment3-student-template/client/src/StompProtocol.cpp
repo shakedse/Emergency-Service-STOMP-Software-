@@ -145,14 +145,24 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
             }
             else
             {
-                // getting the channel
-                std::string channel = args[1];
-                std::cout << "channel sub:" << channel << std::endl;
-                Frame.push_back("SUBSCRIBE\n destination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n");
-                receiptIdToCommand[channel] = currSubscriptionId;
-                currReceiptId++;
-                currSubscriptionId++;
-                channels.push_back(channel);
+                bool isSubscribed = false;
+                for (std::string ch : channels)
+                {
+                    if (ch == args[1])
+                    {
+                        std::cout << "You are already subscribed to this channel" << std::endl;
+                        isSubscribed = true;
+                    }
+                }
+                if (!isSubscribed)
+                {
+                    std::string channel = args[1]; // getting the channel
+                    Frame.push_back("SUBSCRIBE\n destination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n");
+                    receiptIdToCommand[channel] = currSubscriptionId;
+                    currReceiptId++;
+                    currSubscriptionId++;
+                    channels.push_back(channel);
+                }
             }
         }
     }
@@ -181,7 +191,16 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
             {
                 // getting the channel
                 std::string channel = args[1]; // getting the channel
-                if(receiptIdToCommand[channel] == 0)
+                bool isSubscribed = false;
+                for (std::string ch : channels)
+                {
+                    if (ch == args[1])
+                    {
+                        isSubscribed = true;
+                        break;
+                    }
+                }
+                if(!isSubscribed)
                 {
                     std::cout << "can't udsubscribe from a topic you are not subscribed to" << std::endl;
                 }
@@ -195,7 +214,7 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
             }
         }
     }
-    // mvn exec:java -Dexec.mainClass="bgu.spl.net.impl.stomp.StompServer" -Dexec.args="9003 tpc"
+    // mvn exec:java -Dexec.mainClass="bgu.spl.net.impl.stomp.StompServer" -Dexec.args="8813 tpc"
     //  report command
     else if (commandType == "report")
     {
