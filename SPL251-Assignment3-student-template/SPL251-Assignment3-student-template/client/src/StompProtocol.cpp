@@ -8,7 +8,7 @@ StompProtocol::StompProtocol()
     connected = false;
     waitingToDisconnect = false;
     logedIn = false;
-    currReceiptId = 0;
+    currReceiptId = 1;
     loginUser = "";
     shouldTerminate = false;
     receiptIdToCommand = {}; // receipt id and the frame
@@ -181,9 +181,17 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
             {
                 // getting the channel
                 std::string channel = args[1]; // getting the channel
-                Frame.push_back("UNSUBSCRIBE\nid:" + std::to_string(receiptIdToCommand[channel]) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\n");
-                currReceiptId++;
-                channels.erase(std::remove(channels.begin(), channels.end(), channel), channels.end());
+                if(receiptIdToCommand[channel] == 0)
+                {
+                    std::cout << "can't udsubscribe from a topic you are not subscribed to" << std::endl;
+                }
+                else
+                {
+                    Frame.push_back("UNSUBSCRIBE\nid:" + std::to_string(receiptIdToCommand[channel]) + "\nreceipt:" + std::to_string(currReceiptId) + "\n\n");
+                    currReceiptId++;
+                    channels.erase(std::remove(channels.begin(), channels.end(), channel), channels.end());
+                }
+                
             }
         }
     }

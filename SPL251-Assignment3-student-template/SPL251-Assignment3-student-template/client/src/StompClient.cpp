@@ -25,12 +25,14 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 			std::cin.getline(buf, bufsize); // read the message from the keyboard
 		else
 			break;
+
 		std::string lineRead(buf);																  // convert the message to string
 		int len = lineRead.length();															  // get the length of the message
 		std::vector<std::string> commands = stompProtocol->getFrame(lineRead, connectionHandler); // get the command from the user
 
 		// if the message was not sent
-		std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+		//std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+
 		for (std::string command : commands)
 		{
 			if (!connectionHandler.sendLine(command))
@@ -42,6 +44,8 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 				stompProtocol->setShouldTerminate(true); // terminate the program
 				break;
 			}
+					cout << command << endl;
+
 		}
 	}
 }
@@ -55,7 +59,7 @@ void readFromSocket(ConnectionHandler &connectionHandler)
 		// Get back an answer: by using the expected number of bytes (len bytes + newline delimiter)
 		// We could also use: connectionHandler.getline(answer) and then get the answer without the newline char at the end
 
-		std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
+		//std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
 		if (!connectionHandler.getLine(answer))			// get the message from the server
 		{												// if the message was not received
 			std::cout << "Disconnected. Exiting...\n"
@@ -150,7 +154,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				std::map<int, std::vector<std::string>> idAndInfo = stompProtocol->getIdAndInfo();
-				// connected = true; // after login the user is connected
+				stompProtocol->setConnected(true); // after login the user is connected
 				idAndInfo[stompProtocol->getCurrSubscriptionId()] = {username, password};
 				loginToPasscode[username] = password;
 				std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
@@ -195,6 +199,8 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
+
+		cout << "we are out of login" << endl;
 
 		// initialize threads
 		std::thread keyboardThread(readFromKeyboard, std::ref(connectionHandler));

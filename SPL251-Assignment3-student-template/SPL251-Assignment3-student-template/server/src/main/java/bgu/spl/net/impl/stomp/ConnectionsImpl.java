@@ -80,7 +80,6 @@ public class ConnectionsImpl <T> implements Connections<T>
         subIds.get(connectionId).put(subscribeId, topic);
         Idsubs.get(connectionId).put(topic, subscribeId);
         TopicsToId.get(topic).add(connectionId);
-        System.out.println(topic + " in sub");
         return "successful subscribe"; 
     }
 
@@ -142,14 +141,12 @@ public class ConnectionsImpl <T> implements Connections<T>
 
     public boolean subscribedTo(int connectionId, String topic)
     {
-        System.out.println(topic + "in sub to");
         return TopicsToId.get(topic).contains(connectionId);
     }
 
 
     public String getSubID(int connectionId, String topic)
     {
-        System.out.println(topic + "in getSubID to");
         return Integer.toString(Idsubs.get(connectionId).get(topic));
     }
 
