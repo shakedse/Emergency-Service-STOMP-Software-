@@ -369,10 +369,6 @@ bool StompProtocol::getWaitingToDisconnect() const
 {
     return StompProtocol::waitingToDisconnect;
 }
-bool StompProtocol::getLogedIn() const
-{
-    return logedIn;
-}
 int StompProtocol::getCurrReceiptId() const
 {
     return currReceiptId;
@@ -381,29 +377,13 @@ int StompProtocol::getCurrSubscriptionId() const
 {
     return currSubscriptionId;
 }
-std::map<std::string, int> StompProtocol::getReceiptIdToCommand() const
-{
-    return receiptIdToCommand;
-}
 std::map<std::string, std::string> StompProtocol::getLoginToPasscode() const
 {
     return loginToPasscode;
 }
-std::map<std::string, std::vector<Event>> StompProtocol::getUserToReports() const
-{
-    return userToReports;
-}
 std::map<int, std::vector<std::string>> StompProtocol::getIdAndInfo() const
 {
     return idAndInfo;
-}
-std::string StompProtocol::getLoginUser() const
-{
-    return loginUser;
-}
-std::vector<std::string> StompProtocol::getChannels() const
-{
-    return channels;
 }
 const std::atomic<bool>& StompProtocol::getShouldTerminate() const
 {

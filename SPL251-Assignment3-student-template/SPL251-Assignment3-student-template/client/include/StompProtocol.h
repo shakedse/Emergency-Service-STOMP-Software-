@@ -34,15 +34,10 @@ void setConnected(bool connected);
 bool getWaitingToDisconnect() const;
 void setWaitingToDisconnect(bool connected);
 void setLoginUser(std::string name);
-bool getLogedIn() const;
 int getCurrReceiptId() const;
 int getCurrSubscriptionId() const;
-std::map<std::string, int> getReceiptIdToCommand() const;
 std::map<std::string, std::string> getLoginToPasscode() const;
-std::map<std::string, std::vector<Event>> getUserToReports() const;
 std::map<int, std::vector<std::string>> getIdAndInfo() const;
-std::string getLoginUser() const;
-std::vector<std::string> getChannels() const;
 const std::atomic<bool>& getShouldTerminate() const;
 void setShouldTerminate(bool change);
 
