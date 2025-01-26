@@ -315,6 +315,7 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
         std::string sum = "DISCONNECT\nreceipt:" + std::to_string(currReceiptId) + "\n\n\0";
         Frame.push_back(sum);
         loginUser = "";
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
         waitingToDisconnect = true;
         connected = false;
     }

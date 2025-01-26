@@ -18,7 +18,6 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 {
 	while (stompProtocol->getConnected())
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		const short bufsize = 1024; // maximal size of message
 		char buf[bufsize];			// buffer array for the message
 		if (stompProtocol->getConnected())
