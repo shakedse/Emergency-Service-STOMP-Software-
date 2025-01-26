@@ -20,7 +20,6 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
     @Override
     public StompFrame process(StompFrame msg) 
     {
-        System.out.println(msg.toString());
         String command = msg.getCommand();
         if(command.equals("CONNECT")) // the message in a connect message
         {
@@ -49,7 +48,6 @@ public class StompMessagingProtocolImpl implements MessagingProtocol<StompFrame>
         else if(command.equals("SEND"))
         {
             ConcurrentHashMap<String, String> headers = msg.getHeaders();
-            System.out.println(msg.getHeaders().get("destination") + "in prot");
             if(connections.subscribedTo(connectionId, headers.get("destination").substring(1))) // first checks if the user is subscribed to the topic it's trying to send massege about
             {
                 ConcurrentHashMap<String, String> messageHeaders = new ConcurrentHashMap<String, String>();

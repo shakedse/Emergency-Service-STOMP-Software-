@@ -4,7 +4,7 @@
 
 StompProtocol::StompProtocol()
 {
-    currSubscriptionId = 0;
+    currSubscriptionId = 1;
     connected = false;
     waitingToDisconnect = false;
     logedIn = false;
@@ -157,7 +157,7 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
                 if (!isSubscribed)
                 {
                     std::string channel = args[1]; // getting the channel
-                    Frame.push_back("SUBSCRIBE\n destination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n");
+                    Frame.push_back("SUBSCRIBE\ndestination:" + channel + "\nid:" + std::to_string(currSubscriptionId) + "\nreceipt:" + std::to_string(currReceiptId) + "\n");
                     receiptIdToCommand[channel] = currSubscriptionId;
                     currReceiptId++;
                     currSubscriptionId++;
@@ -214,7 +214,6 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
             }
         }
     }
-    // mvn exec:java -Dexec.mainClass="bgu.spl.net.impl.stomp.StompServer" -Dexec.args="8813 tpc"
     //  report command
     else if (commandType == "report")
     {
@@ -335,7 +334,6 @@ const std::vector<std::string> StompProtocol::logIn()
         char buf[bufsize];              // buffer array for the message
         std::cin.getline(buf, bufsize); // read the message from the keyboard
         std::string lineRead(buf);      // convert the message to string
-        int len = lineRead.length();    // get the length of the message
         int firstSpaceIndex = lineRead.find(' ');
         if (firstSpaceIndex > 7)
         {
@@ -357,7 +355,6 @@ const std::vector<std::string> StompProtocol::logIn()
                 std::string arg;
                 std::stringstream ss(lineRead);
                 std::vector<std::string> args;
-                short port = 0;
 
                 // Split the string by space
                 while (ss >> arg)

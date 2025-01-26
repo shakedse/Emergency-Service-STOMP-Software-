@@ -18,7 +18,7 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 {
 	while (stompProtocol->getConnected())
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		const short bufsize = 1024; // maximal size of message
 		char buf[bufsize];			// buffer array for the message
 		if (stompProtocol->getConnected())
@@ -44,8 +44,6 @@ void readFromKeyboard(ConnectionHandler &connectionHandler)
 				stompProtocol->setShouldTerminate(true); // terminate the program
 				break;
 			}
-					cout << command << endl;
-
 		}
 	}
 }
@@ -109,6 +107,7 @@ int main(int argc, char *argv[])
 	ConnectionHandler connectionHandler(host, port);
 	while (true)
 	{
+		stompProtocol = new StompProtocol();
 		while (!stompProtocol->getConnected())
 		{
 			std::vector<std::string> args = stompProtocol->logIn();
@@ -158,7 +157,7 @@ int main(int argc, char *argv[])
 				idAndInfo[stompProtocol->getCurrSubscriptionId()] = {username, password};
 				loginToPasscode[username] = password;
 				std::lock_guard<std::mutex> lock(consoleMutex); // lock the thread
-				string frame = "CONNECT\naccept-version:1.2\nhost:" + host + "\n" + "login:" + username + "\n" + "passcode:" + password + "\n" + "\0";
+				string frame = "CONNECT\naccept-version:1.2\nhost:stomp.cs.bgu.ac.il\nlogin:" + username + "\n" + "passcode:" + password + "\n" + "\0";
 				if (!connectionHandler.sendLine(frame))
 				{
 					std::cerr << "Frame did not sent - fail\n"
@@ -199,8 +198,6 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-
-		cout << "we are out of login" << endl;
 
 		// initialize threads
 		std::thread keyboardThread(readFromKeyboard, std::ref(connectionHandler));
