@@ -12,12 +12,15 @@ using namespace std;
 #include "../include/StompProtocol.h"
 
 std::mutex consoleMutex;
-StompProtocol *stompProtocol = new StompProtocol();
+StompProtocol *stompProtocol;
+
+//mvn exec:java -Dexec.mainClass="bgu.spl.net.impl.stomp.StompServer" -Dexec.args="<port> tpc"
 
 void readFromKeyboard(ConnectionHandler &connectionHandler)
 {
 	while (stompProtocol->getConnected())
 	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(30));
 		const short bufsize = 1024; // maximal size of message
 		char buf[bufsize];			// buffer array for the message
 		if (stompProtocol->getConnected())
@@ -74,6 +77,7 @@ void readFromSocket(ConnectionHandler &connectionHandler)
 		answer.resize(len - 1); // remove the '\n' character from the message
 
 		std::string command = answer.substr(0, answer.find("\n"));
+		cout << answer << endl;
 
 		if (stompProtocol->getWaitingToDisconnect() && command == "RECEIPT")
 		{
@@ -99,6 +103,7 @@ void readFromSocket(ConnectionHandler &connectionHandler)
 
 int main(int argc, char *argv[])
 {
+	map<string,string> loginToPasscode = {};    // login and passcode
 	string host;
 	short port;
 	std::string username;
@@ -110,7 +115,6 @@ int main(int argc, char *argv[])
 		while (!stompProtocol->getConnected())
 		{
 			std::vector<std::string> args = stompProtocol->logIn();
-
 			std::string hostPort = args[1];
 			host = hostPort.substr(0, hostPort.find(':'));
 			std::string portString = hostPort.substr(hostPort.find(':') + 1, hostPort.size() - 1);
@@ -134,7 +138,6 @@ int main(int argc, char *argv[])
 			username = args[2];
 			stompProtocol->setLoginUser(username);
 			password = args[3];
-			std::map<std::string, std::string> loginToPasscode = stompProtocol->getLoginToPasscode();
 			// checking if the login name is already in the system
 			if (loginToPasscode[username] != "" && loginToPasscode[username] != password)
 			{

@@ -12,7 +12,6 @@ StompProtocol::StompProtocol()
     loginUser = "";
     shouldTerminate = false;
     receiptIdToCommand = {}; // receipt id and the frame
-    loginToPasscode = {};    // login and passcode
     userToReports = {};      // user and his reports
     idAndInfo = {};
     channels = {};
@@ -202,7 +201,7 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
                 }
                 if(!isSubscribed)
                 {
-                    std::cout << "can't udsubscribe from a topic you are not subscribed to" << std::endl;
+                    std::cout << "can't unsubscribe from a topic you are not subscribed to" << std::endl;
                 }
                 else
                 {
@@ -239,7 +238,7 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
             {
                 std::string file = args[1];                          // getting the file
                 names_and_events parsedFile = parseEventsFile(file); // parsing the file
-                bool isSubscribed = false;
+                /*bool isSubscribed = false;
                 for (std::string channel : channels)
                 {
                     if (channel == parsedFile.channel_name)
@@ -251,9 +250,8 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
                 if (!isSubscribed)
                 {
                     std::cout << "You are not subscribed to this channel" << std::endl;
-                }
-                else
-                {
+                }*/
+                
                     for (const Event &event : parsedFile.events)
                     {
                         std::ostringstream oss;
@@ -271,7 +269,7 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
                         userToReports[loginUser].push_back(event);
                         Frame.push_back(currFrame);
                     }
-                }
+                
             }
         }
     }
@@ -315,7 +313,6 @@ std::vector<std::string> StompProtocol::getFrame(std::string command, Connection
         std::string sum = "DISCONNECT\nreceipt:" + std::to_string(currReceiptId) + "\n\n\0";
         Frame.push_back(sum);
         loginUser = "";
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
         waitingToDisconnect = true;
         connected = false;
     }
@@ -401,10 +398,6 @@ int StompProtocol::getCurrReceiptId() const
 int StompProtocol::getCurrSubscriptionId() const
 {
     return currSubscriptionId;
-}
-std::map<std::string, std::string> StompProtocol::getLoginToPasscode() const
-{
-    return loginToPasscode;
 }
 std::map<int, std::vector<std::string>> StompProtocol::getIdAndInfo() const
 {

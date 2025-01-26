@@ -141,6 +141,8 @@ public class ConnectionsImpl <T> implements Connections<T>
 
     public boolean subscribedTo(int connectionId, String topic)
     {
+        if(TopicsToId.get(topic) == null)
+            return false;
         return TopicsToId.get(topic).contains(connectionId);
     }
 

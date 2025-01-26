@@ -20,7 +20,7 @@ private:
 	//thread keyboardThread;
 	//thread socketThread;
 	//map<int, string> receiptIdToCommand;			//receipt id and the frame
-	map<string,string> loginToPasscode;				//login and passcode
+	std::map<std::string, std::string> loginToPasscode;      // login and passcode
 	map<string, vector<Event>> userToReports;		//user and his reports
 	map<int, vector<string>> idAndInfo;				//id and login info
 
@@ -34,5 +34,7 @@ public:
 	std::string epochToDate(int epochTime);
 	void readFromSocket(ConnectionHandler &connectionHandler);
 	void readFromKeyboard(ConnectionHandler &connectionHandler);
+	std::map<std::string, std::string> getLoginToPasscode() const;
+
 
 };

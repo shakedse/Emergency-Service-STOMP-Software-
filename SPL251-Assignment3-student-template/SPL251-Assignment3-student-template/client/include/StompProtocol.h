@@ -16,7 +16,6 @@ private:
     bool logedIn;
     int currReceiptId;
     std::map<std::string, int> receiptIdToCommand;           // receipt id and the frame
-    std::map<std::string, std::string> loginToPasscode;      // login and passcode
     std::map<std::string, std::vector<Event>> userToReports; // user and his reports
     std::map<int, std::vector<std::string>> idAndInfo;
     std::string loginUser;
@@ -36,7 +35,6 @@ public:
     void setLoginUser(std::string name);
     int getCurrReceiptId() const;
     int getCurrSubscriptionId() const;
-    std::map<std::string, std::string> getLoginToPasscode() const;
     std::map<int, std::vector<std::string>> getIdAndInfo() const;
     const std::atomic<bool> &getShouldTerminate() const;
     void setShouldTerminate(bool change);

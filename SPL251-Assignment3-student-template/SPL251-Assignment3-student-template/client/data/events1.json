@@ -1,5 +1,5 @@
 {
-    "channel_name": "police",
+    "channel_name": "pop",
     "events": [
         {
             "event_name": "Grand Theft Auto",
@@ -10,7 +10,10 @@
                 "active": true,
                 "forces_arrival_at_scene": false
             }
-        },
+        }
+    ],
+    "channel_name": "police",
+    "events": [
         {
             "event_name": "Vandalism",
             "city": "Los Alamos",
